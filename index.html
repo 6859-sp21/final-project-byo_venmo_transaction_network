@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script src="d3/d3.js"></script>
+
+<style type="text/css">
+svg {
+	display: block;
+	margin: auto;
+}
+
+body {
+	font-size: 15px;
+	font-family: Helvetica, sans-serif;
+}
+
+h1{
+	color: #3d95ce;
+}
+
+.filtering{
+	display: inline-block;
+	padding: 10px;
+	margin-right: 20px;
+}
+
+.biggraph{
+	border-style: solid;
+	border-width: 1px;
+}
+
+.smallgraph{
+	border-style: solid;
+	display: inline-block;
+	border-width: 1px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Build Your Own Venmo Network</h1>
+
+<div id="searchfilter" class="filtering">
+	<label for="search">Search by name:</label><input type="text" id="search"><input id="searchsubmit" type="button" value="Search">
+</div>
+<div id="datefilter" class="filtering">
+	<label for="startdate">Start date:</label><input type="date" id="startdate">
+	<label for="enddate">End date:</label><input type="date" id="enddate"><input id="datesubmit" type="button" value="Filter">
+</div>
+<div id="searchfilter" class="filtering">
+<label for="chargeorpay">Charges, payments, or both:</label>
+<select id="chargeorpay">
+  <option value="all">All</option>
+  <option value="charges">Charges</option>
+  <option value="payments">Payments</option>
+</select>
+</div>
+
+
+<div id="networkvis" class="biggraph"></div>
+
+<div id="graphovertime" class="biggraph"></div>
+
+<div id="usergraph" class="smallgraph"></div>
+
+<div id="emojigraph" class="smallgraph"></div>
+
+
+<script>
+
+Promise.all([
+d3.csv("placeholder.csv")
+])
+.then(function(dt){
+
+venmoData = dt[0];
+
+//create network
+var networkW = "90vw";
+var networkH = "60vh";
+var networksvg = d3.select("#networkvis")
+	        .append("svg")
+	        .attr("width", networkW)
+	        .attr("height", networkH);
+
+//create line graph over time
+var lineW = "90vw";
+var lineH = "60vh";
+var networksvg = d3.select("#networkvis")
+	        .append("svg")
+	        .attr("width", lineW)
+	        .attr("height", lineH);
+
+//create user graph
+var userW = "45vw";
+var userH = "45vh";
+var networksvg = d3.select("#networkvis")
+	        .append("svg")
+	        .attr("width", userW)
+	        .attr("height", userH);
+
+//create emoji graph
+var emojiW = "45vw";
+var emojiH = "45vh";
+var networksvg = d3.select("#networkvis")
+	        .append("svg")
+	        .attr("width", emojiW)
+	        .attr("height", emojiH);
+
+}) //end of then function
+
+</script>
+
+
+<h2 id="design-choices">Design Choices and Reflection</h2>
+<div>
+<p>
+Kiran Gite and Shane Weisberg, for MIT 6.859 Interactive Data Visualization, Spring 2021. <a href="https://github.com/6859-sp21/final-project-byo_venmo_transaction_network" target=" blank"> [Source code]</a>
+</p>
+</div>
+
+
+</body>
+
+</html>
