@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<script src="d3/d3.js"></script>
+<script src="https://d3js.org/d3.v6.js"></script>
 
 <style type="text/css">
 svg {
@@ -73,24 +73,89 @@ h1{
 <script>
 
 Promise.all([
-d3.csv("placeholder.csv")
+//d3.csv("placeholder.csv")
+d3.json("https://raw.githubusercontent.com/6859-sp21/final-project-byo_venmo_transaction_network/main/venmo_gt4_first200k_tiny.json")
 ])
 .then(function(dt){
 
 venmoData = dt[0];
+console.log(venmoData.links);
+console.log(venmoData.nodes);
+
+// Some variables
+var radius = 3,
+	link_strength = 0.5
+	center_strength = 0.1
+	charge = -1;
 
 //create network
 var networkW = "90vw";
 var networkH = "60vh";
 var networksvg = d3.select("#networkvis")
 	        .append("svg")
+			.attr("id", "networkvis_inner")
 	        .attr("width", networkW)
 	        .attr("height", networkH);
+
+// Initialize the network edges
+var link = networksvg
+    		.selectAll("line")
+			.data(venmoData.links)
+			.enter()
+			.append("line")
+			.style("stroke", "#aaa")
+			// I forgot to implement this...
+			//.style("stroke_width", function(d) {
+			//	return d.weight
+			//})
+
+// Initialize the nodes
+var node = networksvg
+			.selectAll("circle")
+			.data(venmoData.nodes)
+			.enter()
+			.append("circle")
+			.attr("r", radius)
+			.style("fill", "black")
+
+// There's probably a better way of locating the center of the network...
+var width = networksvg.attr("width"),
+	height = networksvg.attr("height"),
+	wind_width = window.innerWidth,
+	svg_width = d3.select('#networkvis_inner').attr('width').slice(0,2)/100,
+	svg_width_px = wind_width * svg_width,
+	wind_height = window.innerHeight,
+	svg_height = d3.select('#networkvis_inner').attr('height').slice(0,2)/100,
+	svg_height_px = wind_height * svg_height;
+
+// Forces for node positioning			
+var simulation = d3.forceSimulation(venmoData.nodes)              // Force algorithm is nodes
+      .force("link", d3.forceLink(venmoData.links).strength(link_strength)                // This force provides links between nodes
+            .id(function(d) { return d.id; })                     
+      )
+      .force("charge", d3.forceManyBody().strength(charge))         // Repulsion between nodes.
+      .force("center", d3.forceCenter(svg_width_px / 2, svg_height_px / 2).strength(center_strength))     // Attracts nodes to the center of the svg area
+	  //.force("x", d3.forceX()) // Can mess around with these
+      //.force("y", d3.forceY())
+	  .on("tick", ticked);
+
+ // This function is run at each iteration of the force algorithm, updating the nodes position.
+ function ticked() {
+	node
+         .attr("cx", function (d) { return d.x = Math.max(radius,Math.min(svg_width_px - radius, d.x)); })
+         .attr("cy", function(d) { return d.y = Math.max(radius,Math.min(svg_height_px - radius, d.y)); });
+    link
+        .attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y;})
+        .attr("x2", function(d) { return d.target.x;})
+        .attr("y2", function(d) { return d.target.y;}); 
+  }
+
 
 //create line graph over time
 var lineW = "90vw";
 var lineH = "60vh";
-var networksvg = d3.select("#networkvis")
+var networksvg = d3.select("#graphovertime")
 	        .append("svg")
 	        .attr("width", lineW)
 	        .attr("height", lineH);
@@ -98,7 +163,7 @@ var networksvg = d3.select("#networkvis")
 //create user graph
 var userW = "45vw";
 var userH = "45vh";
-var networksvg = d3.select("#networkvis")
+var networksvg = d3.select("#usergraph")
 	        .append("svg")
 	        .attr("width", userW)
 	        .attr("height", userH);
@@ -106,7 +171,7 @@ var networksvg = d3.select("#networkvis")
 //create emoji graph
 var emojiW = "45vw";
 var emojiH = "45vh";
-var networksvg = d3.select("#networkvis")
+var networksvg = d3.select("#emojigraph")
 	        .append("svg")
 	        .attr("width", emojiW)
 	        .attr("height", emojiH);
