@@ -33,6 +33,7 @@ h1{
 .smallgraph{
 	border-style: solid;
 	display: inline-block;
+	margin-left: 50px;
 	border-width: 1px;
 }
 
@@ -48,16 +49,20 @@ h1{
 	<label for="search">Search by name:</label><input type="text" id="search"><input id="searchsubmit" type="button" value="Search">
 </div>
 <div id="datefilter" class="filtering">
-	<label for="startdate">Start date:</label><input type="date" id="startdate">
-	<label for="enddate">End date:</label><input type="date" id="enddate"><input id="datesubmit" type="button" value="Filter">
+	<label for="startdate">Start date:</label><input type="date" id="startdate" value="2018-07-01" min="2018-07-01" max="2019-02-28">
+	<label for="enddate">End date:</label><input type="date" id="enddate" value="2019-02-28" min="2018-07-01" max="2019-02-28">
+	<input id="datesubmit" type="button" value="Filter">
 </div>
-<div id="searchfilter" class="filtering">
+<div id="chargefilter" class="filtering">
 <label for="chargeorpay">Charges, payments, or both:</label>
 <select id="chargeorpay">
   <option value="all">All</option>
   <option value="charges">Charges</option>
   <option value="payments">Payments</option>
 </select>
+</div>
+<div id="showalldiv" class="filtering">
+	<input id="showall" type="button" value="Show all">
 </div>
 
 
@@ -74,7 +79,7 @@ h1{
 
 Promise.all([
 //d3.csv("placeholder.csv")
-d3.json("https://raw.githubusercontent.com/6859-sp21/final-project-byo_venmo_transaction_network/main/venmo_gt4_first200k_tiny.json")
+d3.json("https://raw.githubusercontent.com/6859-sp21/final-project-byo_venmo_transaction_network/main/venmo_gt4_first200k_medium.json")
 ])
 .then(function(dt){
 
@@ -85,38 +90,53 @@ console.log(venmoData.nodes);
 // Some variables
 var radius = 3,
 	link_strength = 0.5
-	center_strength = 0.1
-	charge = -1;
+	center_strength = 1
+	charge = -0.01;
 
 //create network
 var networkW = "90vw";
-var networkH = "60vh";
+var networkH = "80vh";
 var networksvg = d3.select("#networkvis")
 	        .append("svg")
 			.attr("id", "networkvis_inner")
 	        .attr("width", networkW)
 	        .attr("height", networkH);
 
+
+var g = networksvg.append("g")
+    .attr("class", "everything");
+
+var zoom_handler = d3.zoom()
+    .on("zoom", zoom_actions)
+    .scaleExtent([1,8]);
+
+zoom_handler(networksvg);  
+
+function zoom_actions({transform}){
+    g.attr("transform", transform);
+}
+
+
 // Initialize the network edges
-var link = networksvg
+var link = g
     		.selectAll("line")
 			.data(venmoData.links)
-			.enter()
-			.append("line")
-			.style("stroke", "#aaa")
+			.join("line")
+			.style("stroke", "#aaa");
 			// I forgot to implement this...
 			//.style("stroke_width", function(d) {
 			//	return d.weight
 			//})
 
+
 // Initialize the nodes
-var node = networksvg
+var node = g
 			.selectAll("circle")
 			.data(venmoData.nodes)
-			.enter()
-			.append("circle")
+			.join("circle")
 			.attr("r", radius)
-			.style("fill", "black")
+			.style("fill", "black");
+
 
 // There's probably a better way of locating the center of the network...
 var width = networksvg.attr("width"),
@@ -127,6 +147,9 @@ var width = networksvg.attr("width"),
 	wind_height = window.innerHeight,
 	svg_height = d3.select('#networkvis_inner').attr('height').slice(0,2)/100,
 	svg_height_px = wind_height * svg_height;
+
+//console.log(wind_width);console.log(svg_width);console.log(svg_width_px);
+
 
 // Forces for node positioning			
 var simulation = d3.forceSimulation(venmoData.nodes)              // Force algorithm is nodes
@@ -139,6 +162,7 @@ var simulation = d3.forceSimulation(venmoData.nodes)              // Force algor
       //.force("y", d3.forceY())
 	  .on("tick", ticked);
 
+
  // This function is run at each iteration of the force algorithm, updating the nodes position.
  function ticked() {
 	node
@@ -150,6 +174,77 @@ var simulation = d3.forceSimulation(venmoData.nodes)              // Force algor
         .attr("x2", function(d) { return d.target.x;})
         .attr("y2", function(d) { return d.target.y;}); 
   }
+
+
+
+function generateGraph(nodesdata,linksdata){
+	//console.log(nodesdata,linksdata);
+	link = link.data(linksdata)
+		.join("line")
+		.style("stroke", "#aaa");
+		// I forgot to implement this...
+		//.style("stroke_width", function(d) {
+		//	return d.weight
+		//})
+
+
+
+	node = node.data(nodesdata)
+		.join("circle")
+		.attr("r", radius)
+		.style("fill", "black");
+
+
+	simulation.nodes(nodesdata);
+	simulation.force("link").links(linksdata);
+
+	simulation.alpha(2).restart();
+
+}
+
+
+document.getElementById("searchsubmit").addEventListener('click',filter);
+
+document.getElementById("datesubmit").addEventListener('click',filter);
+
+//document.getElementById("chargefilter").addEventListener('change',filter);
+
+document.getElementById("showall").addEventListener('click',function(){generateGraph(venmoData.nodes,venmoData.links);});
+
+
+function filter(event){
+	var filternodes = venmoData.nodes, filterlinks = venmoData.links;
+
+	var namevalue = document.getElementById("search").value === '' ? '.*' : document.getElementById("search").value;
+	var startdatevalue = document.getElementById("startdate").value === '' ? "2010-01-01" : document.getElementById("startdate").value;
+	var enddatevalue = document.getElementById("enddate").value === '' ? "2030-01-01" : document.getElementById("enddate").value;
+	//var chargesvalue = document.getElementById("chargeorpay").value === 'all' ? '.*' : document.getElementById("chargeorpay").value;
+
+	console.log(namevalue);console.log(startdatevalue);console.log(enddatevalue);//console.log(chargesvalue);
+
+	filterlinks = filterlinks.filter(function(d){
+		reformatDate = d.date_created[0].slice(6,10)+"-"+d.date_created[0].slice(0,2) +"-"+d.date_created[0].slice(3,5);
+		return (((d.source.display_name.search(namevalue) !== -1) || (d.target.display_name.search(namevalue) !== -1)) 
+			&& (reformatDate >= startdatevalue)
+			&& (reformatDate <= enddatevalue))
+	});
+
+	var allnames = []
+
+	for (var i = 0; i < filterlinks.length; i++) {
+		allnames.push(filterlinks[i].source.name);
+		allnames.push(filterlinks[i].target.name);
+	}
+
+	filternodes = filternodes.filter(function(d){
+		return allnames.includes(d.name)
+	});
+
+	console.log(filterlinks);console.log(filternodes);
+
+	generateGraph(filternodes,filterlinks);
+
+}
 
 
 //create line graph over time
