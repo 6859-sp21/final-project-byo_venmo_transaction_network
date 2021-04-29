@@ -103,6 +103,7 @@ var networksvg = d3.select("#networkvis")
 	        .attr("height", networkH);
 
 
+//zoom/pan functionality
 var g = networksvg.append("g")
     .attr("class", "everything");
 
@@ -148,7 +149,6 @@ var width = networksvg.attr("width"),
 	svg_height = d3.select('#networkvis_inner').attr('height').slice(0,2)/100,
 	svg_height_px = wind_height * svg_height;
 
-//console.log(wind_width);console.log(svg_width);console.log(svg_width_px);
 
 
 // Forces for node positioning			
@@ -176,9 +176,11 @@ var simulation = d3.forceSimulation(venmoData.nodes)              // Force algor
   }
 
 
-
+//generate new network with updated data
 function generateGraph(nodesdata,linksdata){
 	//console.log(nodesdata,linksdata);
+
+	//update link and node with new data
 	link = link.data(linksdata)
 		.join("line")
 		.style("stroke", "#aaa");
@@ -187,14 +189,13 @@ function generateGraph(nodesdata,linksdata){
 		//	return d.weight
 		//})
 
-
-
 	node = node.data(nodesdata)
 		.join("circle")
 		.attr("r", radius)
 		.style("fill", "black");
 
 
+	//restart simulation
 	simulation.nodes(nodesdata);
 	simulation.force("link").links(linksdata);
 
@@ -203,25 +204,25 @@ function generateGraph(nodesdata,linksdata){
 }
 
 
+//add functions to filter buttons
 document.getElementById("searchsubmit").addEventListener('click',filter);
-
 document.getElementById("datesubmit").addEventListener('click',filter);
-
 //document.getElementById("chargefilter").addEventListener('change',filter);
-
 document.getElementById("showall").addEventListener('click',function(){generateGraph(venmoData.nodes,venmoData.links);});
 
 
+//filter data by name/date and call network generation function
 function filter(event){
 	var filternodes = venmoData.nodes, filterlinks = venmoData.links;
 
+	//get values
 	var namevalue = document.getElementById("search").value === '' ? '.*' : document.getElementById("search").value;
 	var startdatevalue = document.getElementById("startdate").value === '' ? "2010-01-01" : document.getElementById("startdate").value;
 	var enddatevalue = document.getElementById("enddate").value === '' ? "2030-01-01" : document.getElementById("enddate").value;
 	//var chargesvalue = document.getElementById("chargeorpay").value === 'all' ? '.*' : document.getElementById("chargeorpay").value;
+	//console.log(namevalue);console.log(startdatevalue);console.log(enddatevalue);//console.log(chargesvalue);
 
-	console.log(namevalue);console.log(startdatevalue);console.log(enddatevalue);//console.log(chargesvalue);
-
+	//filter links and nodes
 	filterlinks = filterlinks.filter(function(d){
 		reformatDate = d.date_created[0].slice(6,10)+"-"+d.date_created[0].slice(0,2) +"-"+d.date_created[0].slice(3,5);
 		return (((d.source.display_name.search(namevalue) !== -1) || (d.target.display_name.search(namevalue) !== -1)) 
@@ -240,10 +241,11 @@ function filter(event){
 		return allnames.includes(d.name)
 	});
 
+	//for debugging
 	console.log(filterlinks);console.log(filternodes);
 
+	//generate new network
 	generateGraph(filternodes,filterlinks);
-
 }
 
 
