@@ -65,6 +65,12 @@ div.tooltip_img {
 	pointer-events: none;
 }
 
+#datesubmit{
+	background-color:#3d95ce;
+	margin-left: 20px;
+	margin-right: 20px;
+}
+
 </style>
 
 </head>
@@ -74,12 +80,13 @@ div.tooltip_img {
 <h1>Build Your Own Venmo Network</h1>
 
 <div id="searchfilter" class="filtering">
-	<label for="search">Search by name:</label><input type="text" id="search"><input id="searchsubmit" type="button" value="Search">
+	<label for="search">Search by name:</label><input type="text" id="search">
 </div>
 <div id="datefilter" class="filtering">
 	<label for="startdate">Start date:</label><input type="date" id="startdate" value="2018-07-01" min="2018-07-01" max="2019-02-28">
 	<label for="enddate">End date:</label><input type="date" id="enddate" value="2019-02-28" min="2018-07-01" max="2019-02-28">
 	<input id="datesubmit" type="button" value="Filter">
+	<input id="searchsubmit" type="button" value="Clear name searches">
 </div>
 <div id="chargefilter" class="filtering" style="display:none">
 <label for="chargeorpay">Charges, payments, or both:</label>
@@ -93,6 +100,8 @@ div.tooltip_img {
 	<input id="showall" type="button" value="Show all">
 </div>
 
+<div id="namesearches">
+</div>
 
 <div id="networkvis" class="biggraph"></div>
 
@@ -116,10 +125,10 @@ console.log(venmoData.links);
 console.log(venmoData.nodes);
 
 // Some variables
-var radius = 3,
+var radius = 4,
 	link_strength = 0.5,
 	center_strength = 1,
-	charge = -0.01,
+	charge = -0.05,
 	image_left = 100
 	image_top = 100;
 
@@ -162,7 +171,12 @@ var img_tooltip = d3.select("body").append("div")
                .style("opacity", 0);
 
 // linear scale for calculating edge width (may have to adjust the upper bound later)
-const stroke_scale = d3.scaleLinear().domain([1,102]).range([1,4]);
+var stroke_scale = d3.scaleLinear().domain([1,102]).range([5,10]);
+
+//color scale: need to add legend at some point
+var color_scale = d3.scaleDiverging(d3.interpolateInferno).domain([1,2,10]); //definitely adjust bounds for more data
+
+
 
 // Initialize the network edges
 var link = g
@@ -170,7 +184,7 @@ var link = g
 			.data(venmoData.links)
 			.join("line")
 			.style("stroke", "#aaa")
-			.style("stroke_width", function(d) {
+			.style("stroke-width", function(d) {
 				return stroke_scale(d.weight);
 			});
 
@@ -181,7 +195,90 @@ var node = g
 			.data(venmoData.nodes)
 			.join("circle")
 			.attr("r", radius)
-			.style("fill", "black");
+			.style("fill", function(d){return color_scale(d.neighbors.length)});
+
+
+
+// Hovering functionality for the nodes and edges
+node
+	.on("mouseenter", function(event, d) {
+		//console.log(d);
+		// Show the tooltip with details
+		node_tooltip.transition()
+			.duration(100)
+			.style("opacity", 1);
+
+		node_tooltip
+			.html('Name: ' + d.display_name + '<br>' + 
+			'Number of Transactions: ' + d.n_trans + '<br>' + 
+			'Number of Neighbors (Degree Centrality): ' + d.neighbors.length + '<br>' + 
+			'Eigenvalue Centrality?')
+			.style("left", (event.pageX + 10) + "px")
+			.style("top", (event.pageY - 50) + "px")
+			.style("color", "white")
+
+		// Also show a tooltip with the image
+		img_tooltip.transition()
+			.duration(100)
+			.style("opacity", 1);
+
+		img_tooltip
+			.html(' ')   
+			.style("left", event.pageX + 10  + "px")
+			.style("top", event.pageY + 30 + "px")
+			.style("background-image", "url(" + d.photo_url + ")");
+	})
+	// And get rid of them when the mouse moves
+	.on("mouseleave", function(event, d) {
+		node_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0);
+
+		img_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0);
+
+	})
+	.on("click", function(event, d) {
+		filter(d,"click");
+	});
+
+
+
+// Same for edges
+link
+	.on("mouseenter", function(event, d) {
+		//console.log(d);
+		link_tooltip.transition()
+			.duration(100)
+			.style("opacity", 1);
+		
+		// Slightly different messages for edges with weight 1
+		if (d.weight == 1) {
+			var tooltip_text = 'User 1: ' + d.source.display_name + '<br>' + 
+				'User 2: ' + d.target.display_name + '<br>' + 
+				'Number of Transactions: ' + d.weight + '<br>' + 
+				'Message: ' + d.note + '<br>' + 
+				'Transaction Start Date: ' + d.date_created + '<br>' + 
+				'Transaction Completion Date: ' + d.date_completed + '<br>'
+		} else {
+			var tooltip_text = 'User 1: ' + d.source.display_name + '<br>' + 
+				'User 2: ' + d.target.display_name + '<br>' + 
+				'Number of Transactions: ' + d.weight + '<br>' + 
+				'Messages: ' + d.note + '<br>'
+		}
+
+		link_tooltip
+			.html(tooltip_text)
+			.style("left", (event.pageX + 10) + "px")
+			.style("top", (event.pageY - 100) + "px")
+			.style("color", "white")
+	})
+	.on("mouseleave", function(event, d) {
+		link_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0);
+	});
 
 
 // There's probably a better way of locating the center of the network...
@@ -194,9 +291,9 @@ var width = networksvg.attr("width"),
 	svg_height = d3.select('#networkvis_inner').attr('height').slice(0,2)/100,
 	svg_height_px = wind_height * svg_height;
 
-var namevalue = [document.getElementById("search").value === '' ? '.*' : document.getElementById("search").value];
-var	namevalue = ["Clayton Silva"];
-var click_namevalue = [];
+//var namevalue = [document.getElementById("search").value];
+namevalue = ["Clayton Silva"];
+click_namevalue = [];
 
 
 
@@ -225,28 +322,33 @@ var simulation = d3.forceSimulation(venmoData.nodes)              // Force algor
   }
 
 
+
+
+
 //generate new network with updated data
 function generateGraph(nodesdata,linksdata){
 	//console.log(nodesdata,linksdata);
+
+	node_tooltip.transition()
+		.duration(100)
+		.style("opacity", 0);
+
+	img_tooltip.transition()
+		.duration(100)
+		.style("opacity", 0);
 
 	//update link and node with new data
 	link = link.data(linksdata)
 		.join("line")
 		.style("stroke", "#aaa")
-		.style("stroke_width", function(d) {
+		.style("stroke-width", function(d) {
 			return stroke_scale(d.weight);
 		})
 
 	node = node.data(nodesdata)
 		.join("circle")
 		.attr("r", radius)
-		.style("fill", "black");
-
-
-	//restart simulation
-	simulation.nodes(nodesdata);
-	simulation.force("link").links(linksdata);
-	simulation.alpha(2).restart();
+		.style("fill", function(d){return color_scale(d.neighbors.length)});
 	
 	// Had to paste the same mouse listeners in here. Probably a smarter way...
 	node
@@ -254,7 +356,7 @@ function generateGraph(nodesdata,linksdata){
 		// Show the tooltip with details
 		node_tooltip.transition()
 			.duration(100)
-			.style("opacity", 0.8);
+			.style("opacity", 0.9);
 
 		node_tooltip
 			.html('Name: ' + d.display_name + '<br>' + 
@@ -309,7 +411,7 @@ function generateGraph(nodesdata,linksdata){
 			var tooltip_text = 'User 1: ' + d.source.display_name + '<br>' + 
 				'User 2: ' + d.target.display_name + '<br>' + 
 				'Number of Transactions: ' + d.weight + '<br>' + 
-				'Message: Many' + '<br>'
+				'Messages: ' + d.note  + '<br>'
 		}
 
 		link_tooltip
@@ -323,112 +425,51 @@ function generateGraph(nodesdata,linksdata){
 			.duration(100)
 			.style("opacity", 0);
 	});
+
+	//restart simulation
+	simulation.nodes(nodesdata);
+	simulation.force("link").links(linksdata);
+	simulation.alpha(0.01).restart();
 
 }
 
 //add functions to filter buttons
-document.getElementById("searchsubmit").addEventListener('click',filter);
+document.getElementById("searchsubmit").addEventListener('click',
+	function(event){document.getElementById("search").value = '';namevalue=[];document.getElementById("namesearches").innerHTML="";filter(event);});
 document.getElementById("datesubmit").addEventListener('click',filter);
 //document.getElementById("chargefilter").addEventListener('change',filter);
-document.getElementById("showall").addEventListener('click',function(){generateGraph(venmoData.nodes,venmoData.links);});
-
-// Hovering functionality for the nodes and edges
-node
-	.on("mouseenter", function(event, d) {
-		//console.log(d);
-		// Show the tooltip with details
-		node_tooltip.transition()
-			.duration(100)
-			.style("opacity", 0.8);
-
-		node_tooltip
-			.html('Name: ' + d.display_name + '<br>' + 
-			'Number of Transactions: ' + d.n_trans + '<br>' + 
-			'Number of Neighbors (Degree Centrality): ' + d.neighbors.length + '<br>' + 
-			'Eigenvalue Centrality?')
-			.style("left", (event.pageX + 10) + "px")
-			.style("top", (event.pageY - 50) + "px")
-			.style("color", "white")
-
-		// Also show a tooltip with the image
-		img_tooltip.transition()
-			.duration(100)
-			.style("opacity", 1);
-
-		img_tooltip
-			.html(' ')   
-			.style("left", event.pageX + 10  + "px")
-			.style("top", event.pageY + 30 + "px")
-			.style("background-image", "url(" + d.photo_url + ")");
-	})
-	// And get rid of them when the mouse moves
-	.on("mouseleave", function(event, d) {
-		node_tooltip.transition()
-			.duration(100)
-			.style("opacity", 0);
-
-		img_tooltip.transition()
-			.duration(100)
-			.style("opacity", 0);
-
-	})
-	.on("click", function(event, d) {
-		filter(d,"click");
+document.getElementById("showall").addEventListener('click',
+	function(){
+		document.getElementById("search").value = '';document.getElementById("namesearches").innerHTML="";
+		namevalue=[];
+		click_namevalue=[];
+		generateGraph(venmoData.nodes,venmoData.links);
 	});
 
 
-
-// Same for edges
-link
-	.on("mouseenter", function(event, d) {
-		//console.log(d);
-		link_tooltip.transition()
-			.duration(100)
-			.style("opacity", 0.9);
-		
-		// Slightly different messages for edges with weight 1
-		if (d.weight == 1) {
-			var tooltip_text = 'User 1: ' + d.source.display_name + '<br>' + 
-				'User 2: ' + d.target.display_name + '<br>' + 
-				'Number of Transactions: ' + d.weight + '<br>' + 
-				'Message: ' + d.note + '<br>' + 
-				'Transaction Start Date: ' + d.date_created + '<br>' + 
-				'Transaction Completion Date: ' + d.date_completed + '<br>'
-		} else {
-			var tooltip_text = 'User 1: ' + d.source.display_name + '<br>' + 
-				'User 2: ' + d.target.display_name + '<br>' + 
-				'Number of Transactions: ' + d.weight + '<br>' + 
-				'Message: Many' + '<br>'
-		}
-
-		link_tooltip
-			.html(tooltip_text)
-			.style("left", (event.pageX + 10) + "px")
-			.style("top", (event.pageY - 100) + "px")
-			.style("color", "white")
-	})
-	.on("mouseleave", function(event, d) {
-		link_tooltip.transition()
-			.duration(100)
-			.style("opacity", 0);
-	});
 
 //filter data by name/date and call network generation function
 // Added functionality for filter by clicking: change type = "click"
 function filter(event, type = "filter"){
 	var filternodes = venmoData.nodes, filterlinks = venmoData.links;
 
+
+
 	// namevalue is now a global variable set in line (approximately 197)
 	// Also it's a list now, so using the filter bar adds to this list
-	if (!namevalue.includes(document.getElementById("search").value === '' ? '.*' : document.getElementById("search").value)) {
-		namevalue.push(document.getElementById("search").value === '' ? '.*' : document.getElementById("search").value);
+	if (!namevalue.includes(document.getElementById("search").value) && (document.getElementById("search").value !== '') ) {
+		namevalue.push(document.getElementById("search").value);
+		document.getElementById("namesearches").innerHTML = document.getElementById("namesearches").innerHTML +document.getElementById("search").value+"; ";
 	};
+
 
 	// Similarly, there's a second global list that keeps track of nodes that have been clicked on and their neighbors
 	// If we're using this function on a click, add the clicked node to add to the list of clicked nodes
 	if ((type == "click") && (!click_namevalue.includes(event.display_name))) {
 		click_namevalue.push(event.display_name);
 	}
+
+	console.log(namevalue,click_namevalue);
 
 	var startdatevalue = document.getElementById("startdate").value === '' ? "2010-01-01" : document.getElementById("startdate").value;
 	var enddatevalue = document.getElementById("enddate").value === '' ? "2030-01-01" : document.getElementById("enddate").value;
@@ -438,11 +479,19 @@ function filter(event, type = "filter"){
 	//filter links and nodes
 	filterlinks = filterlinks.filter(function(d){
 		reformatDate = d.date_created[0].slice(6,10)+"-"+d.date_created[0].slice(0,2) +"-"+d.date_created[0].slice(3,5);
+
+		var searchcontains=false;
+
+		for (var i = 0; i < namevalue.length; i++) {
+			if ((d.source.display_name.includes(namevalue[i])) || (d.target.display_name.includes(namevalue[i]))) {
+				searchcontains = true;
+			}
+		}
 		//return (((d.source.display_name.search(namevalue) !== -1) || (d.target.display_name.search(namevalue) !== -1)) 
 		//	&& (reformatDate >= startdatevalue)
 		//	&& (reformatDate <= enddatevalue))
-		return ((namevalue.includes(d.source.display_name)) || (namevalue.includes(d.target.display_name)) 
-			|| (click_namevalue.includes(d.source.display_name)) || (click_namevalue.includes(d.target.display_name))
+		return ( (  searchcontains || (namevalue.includes(d.source.display_name)) || (namevalue.includes(d.target.display_name)) 
+			|| (click_namevalue.includes(d.source.display_name)) || (click_namevalue.includes(d.target.display_name))  )
 			&& (reformatDate >= startdatevalue)
 			&& (reformatDate <= enddatevalue))
 	});
@@ -475,15 +524,21 @@ function filter(event, type = "filter"){
 //create line graph over time
 var lineW = "90vw";
 var lineH = "60vh";
-var networksvg = d3.select("#graphovertime")
+var linegraphsvg = d3.select("#graphovertime")
 	        .append("svg")
 	        .attr("width", lineW)
 	        .attr("height", lineH);
 
+
+linegraphData = [];
+
+
+
+
 //create user graph
 var userW = "45vw";
 var userH = "45vh";
-var networksvg = d3.select("#usergraph")
+var usersvg = d3.select("#usergraph")
 	        .append("svg")
 	        .attr("width", userW)
 	        .attr("height", userH);
@@ -491,7 +546,7 @@ var networksvg = d3.select("#usergraph")
 //create emoji graph
 var emojiW = "45vw";
 var emojiH = "45vh";
-var networksvg = d3.select("#emojigraph")
+var emojisvg = d3.select("#emojigraph")
 	        .append("svg")
 	        .attr("width", emojiW)
 	        .attr("height", emojiH);
