@@ -37,6 +37,34 @@ h1{
 	border-width: 1px;
 }
 
+
+div.tooltip {
+	position: absolute;
+	text-align: left;
+	width: auto;
+	height: auto;
+	padding: 3px;
+	font: 14px sans-serif;
+	font-weight: 300;
+	border: 2px;
+	border-radius: 0px;
+	pointer-events: none;
+	background-color: #3d95ce;
+}
+
+div.tooltip_img {
+	position: absolute;
+	text-align: center;
+	width: 50px;
+	height: 50px;
+	padding: 0px;
+	font: 14px sans-serif;
+	font-weight: 900;
+	border: 0px;
+	border-radius: 0px;
+	pointer-events: none;
+}
+
 </style>
 
 </head>
@@ -89,9 +117,11 @@ console.log(venmoData.nodes);
 
 // Some variables
 var radius = 3,
-	link_strength = 0.5
-	center_strength = 1
-	charge = -0.01;
+	link_strength = 0.5,
+	center_strength = 1,
+	charge = -0.01,
+	image_left = 100
+	image_top = 100;
 
 //create network
 var networkW = "90vw";
@@ -117,17 +147,32 @@ function zoom_actions({transform}){
     g.attr("transform", transform);
 }
 
+// Tooltip for hovering over nodes
+var node_tooltip = d3.select("body").append("div")
+               .attr("class", "tooltip")
+               .style("opacity", 0);
+
+// Tooltip for hovering over edges
+var link_tooltip = d3.select("body").append("div")
+               .attr("class", "tooltip")
+               .style("opacity", 0);
+
+var img_tooltip = d3.select("body").append("div")
+               .attr("class", "tooltip_img")
+               .style("opacity", 0);
+
+// linear scale for calculating edge width (may have to adjust the upper bound later)
+const stroke_scale = d3.scaleLinear().domain([1,102]).range([1,4]);
 
 // Initialize the network edges
 var link = g
     		.selectAll("line")
 			.data(venmoData.links)
 			.join("line")
-			.style("stroke", "#aaa");
-			// I forgot to implement this...
-			//.style("stroke_width", function(d) {
-			//	return d.weight
-			//})
+			.style("stroke", "#aaa")
+			.style("stroke_width", function(d) {
+				return stroke_scale(d.weight);
+			});
 
 
 // Initialize the nodes
@@ -183,11 +228,10 @@ function generateGraph(nodesdata,linksdata){
 	//update link and node with new data
 	link = link.data(linksdata)
 		.join("line")
-		.style("stroke", "#aaa");
-		// I forgot to implement this...
-		//.style("stroke_width", function(d) {
-		//	return d.weight
-		//})
+		.style("stroke", "#aaa")
+		.style("stroke_width", function(d) {
+			return stroke_scale(d.weight);
+		})
 
 	node = node.data(nodesdata)
 		.join("circle")
@@ -210,6 +254,81 @@ document.getElementById("datesubmit").addEventListener('click',filter);
 //document.getElementById("chargefilter").addEventListener('change',filter);
 document.getElementById("showall").addEventListener('click',function(){generateGraph(venmoData.nodes,venmoData.links);});
 
+// Hovering functionality for the nodes and edges
+node
+	.on("mouseenter", function(event, d) {
+		//console.log(d);
+		// Show the tooltip with details
+		node_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0.8);
+
+		node_tooltip
+			.html('Name: ' + d.display_name + '<br>' + 
+			'Number of Transactions: ' + d.n_trans + '<br>' + 
+			'Number of Neighbors (Degree Centrality): ' + d.neighbors.length + '<br>' + 
+			'Eigenvalue Centrality?')
+			.style("left", (event.pageX + 10) + "px")
+			.style("top", (event.pageY - 50) + "px")
+			.style("color", "white")
+
+		// Also show a tooltip with the image
+		img_tooltip.transition()
+			.duration(100)
+			.style("opacity", 1);
+
+		img_tooltip
+			.html(' ')   
+			.style("left", event.pageX + 10  + "px")
+			.style("top", event.pageY + 30 + "px")
+			.style("background-image", "url(" + d.photo_url + ")");
+	})
+	// And get rid of them when the mouse moves
+	.on("mouseleave", function(event, d) {
+		node_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0);
+
+		img_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0);
+
+	});
+
+// Same for edges
+link
+	.on("mouseenter", function(event, d) {
+		//console.log(d);
+		link_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0.9);
+		
+		// Slightly different messages for edges with weight 1
+		if (d.weight == 1) {
+			var tooltip_text = 'User 1: ' + d.source.display_name + '<br>' + 
+				'User 2: ' + d.target.display_name + '<br>' + 
+				'Number of Transactions: ' + d.weight + '<br>' + 
+				'Message: ' + d.note + '<br>' + 
+				'Transaction Start Date: ' + d.date_created + '<br>' + 
+				'Transaction Completion Date: ' + d.date_completed + '<br>'
+		} else {
+			var tooltip_text = 'User 1: ' + d.source.display_name + '<br>' + 
+				'User 2: ' + d.target.display_name + '<br>' + 
+				'Number of Transactions: ' + d.weight + '<br>' + 
+				'Message: Many' + '<br>'
+		}
+
+		link_tooltip
+			.html(tooltip_text)
+			.style("left", (event.pageX + 10) + "px")
+			.style("top", (event.pageY - 100) + "px")
+			.style("color", "white")
+	})
+	.on("mouseleave", function(event, d) {
+		link_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0);
+	});
 
 //filter data by name/date and call network generation function
 function filter(event){
@@ -247,6 +366,7 @@ function filter(event){
 	//generate new network
 	generateGraph(filternodes,filterlinks);
 }
+
 
 
 //create line graph over time
