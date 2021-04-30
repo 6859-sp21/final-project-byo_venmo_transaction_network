@@ -194,6 +194,10 @@ var width = networksvg.attr("width"),
 	svg_height = d3.select('#networkvis_inner').attr('height').slice(0,2)/100,
 	svg_height_px = wind_height * svg_height;
 
+var namevalue = [document.getElementById("search").value === '' ? '.*' : document.getElementById("search").value];
+var	namevalue = ["Clayton Silva"];
+var click_namevalue = [];
+
 
 
 // Forces for node positioning			
@@ -242,11 +246,85 @@ function generateGraph(nodesdata,linksdata){
 	//restart simulation
 	simulation.nodes(nodesdata);
 	simulation.force("link").links(linksdata);
-
 	simulation.alpha(2).restart();
+	
+	// Had to paste the same mouse listeners in here. Probably a smarter way...
+	node
+	.on("mouseenter", function(event, d) {
+		// Show the tooltip with details
+		node_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0.8);
+
+		node_tooltip
+			.html('Name: ' + d.display_name + '<br>' + 
+			'Number of Transactions: ' + d.n_trans + '<br>' + 
+			'Number of Neighbors (Degree Centrality): ' + d.neighbors.length + '<br>' + 
+			'Eigenvalue Centrality?')
+			.style("left", (event.pageX + 10) + "px")
+			.style("top", (event.pageY - 50) + "px")
+			.style("color", "white")
+
+		img_tooltip.transition()
+			.duration(100)
+			.style("opacity", 1);
+
+		img_tooltip
+			.html(' ')   
+			.style("left", event.pageX + 10  + "px")
+			.style("top", event.pageY + 30 + "px")
+			.style("background-image", "url(" + d.photo_url + ")");
+	})
+	.on("mouseleave", function(event, d) {
+		node_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0);
+
+		img_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0);
+
+	})
+	.on("click", function(event, d) {
+		filter(d, "click");
+	});
+
+	// Same for edges
+	link
+	.on("mouseenter", function(event, d) {
+		//console.log(d);
+		link_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0.9);
+		
+		// Slightly different messages for edges with weight 1
+		if (d.weight == 1) {
+			var tooltip_text = 'User 1: ' + d.source.display_name + '<br>' + 
+				'User 2: ' + d.target.display_name + '<br>' + 
+				'Number of Transactions: ' + d.weight + '<br>' + 
+				'Message: ' + d.note + '<br>' + 
+				'Transaction Start Date: ' + d.date_created + '<br>' + 
+				'Transaction Completion Date: ' + d.date_completed + '<br>'
+		} else {
+			var tooltip_text = 'User 1: ' + d.source.display_name + '<br>' + 
+				'User 2: ' + d.target.display_name + '<br>' + 
+				'Number of Transactions: ' + d.weight + '<br>' + 
+				'Message: Many' + '<br>'
+		}
+
+		link_tooltip
+			.html(tooltip_text)
+			.style("left", (event.pageX + 10) + "px")
+			.style("top", (event.pageY - 100) + "px")
+			.style("color", "white")
+	})
+	.on("mouseleave", function(event, d) {
+		link_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0);
+	});
 
 }
-
 
 //add functions to filter buttons
 document.getElementById("searchsubmit").addEventListener('click',filter);
@@ -293,7 +371,12 @@ node
 			.duration(100)
 			.style("opacity", 0);
 
+	})
+	.on("click", function(event, d) {
+		filter(d,"click");
 	});
+
+
 
 // Same for edges
 link
@@ -331,11 +414,22 @@ link
 	});
 
 //filter data by name/date and call network generation function
-function filter(event){
+// Added functionality for filter by clicking: change type = "click"
+function filter(event, type = "filter"){
 	var filternodes = venmoData.nodes, filterlinks = venmoData.links;
 
-	//get values
-	var namevalue = document.getElementById("search").value === '' ? '.*' : document.getElementById("search").value;
+	// namevalue is now a global variable set in line (approximately 197)
+	// Also it's a list now, so using the filter bar adds to this list
+	if (!namevalue.includes(document.getElementById("search").value === '' ? '.*' : document.getElementById("search").value)) {
+		namevalue.push(document.getElementById("search").value === '' ? '.*' : document.getElementById("search").value);
+	};
+
+	// Similarly, there's a second global list that keeps track of nodes that have been clicked on and their neighbors
+	// If we're using this function on a click, add the clicked node to add to the list of clicked nodes
+	if ((type == "click") && (!click_namevalue.includes(event.display_name))) {
+		click_namevalue.push(event.display_name);
+	}
+
 	var startdatevalue = document.getElementById("startdate").value === '' ? "2010-01-01" : document.getElementById("startdate").value;
 	var enddatevalue = document.getElementById("enddate").value === '' ? "2030-01-01" : document.getElementById("enddate").value;
 	//var chargesvalue = document.getElementById("chargeorpay").value === 'all' ? '.*' : document.getElementById("chargeorpay").value;
@@ -344,7 +438,11 @@ function filter(event){
 	//filter links and nodes
 	filterlinks = filterlinks.filter(function(d){
 		reformatDate = d.date_created[0].slice(6,10)+"-"+d.date_created[0].slice(0,2) +"-"+d.date_created[0].slice(3,5);
-		return (((d.source.display_name.search(namevalue) !== -1) || (d.target.display_name.search(namevalue) !== -1)) 
+		//return (((d.source.display_name.search(namevalue) !== -1) || (d.target.display_name.search(namevalue) !== -1)) 
+		//	&& (reformatDate >= startdatevalue)
+		//	&& (reformatDate <= enddatevalue))
+		return ((namevalue.includes(d.source.display_name)) || (namevalue.includes(d.target.display_name)) 
+			|| (click_namevalue.includes(d.source.display_name)) || (click_namevalue.includes(d.target.display_name))
 			&& (reformatDate >= startdatevalue)
 			&& (reformatDate <= enddatevalue))
 	});
@@ -361,12 +459,17 @@ function filter(event){
 	});
 
 	//for debugging
-	console.log(filterlinks);console.log(filternodes);
+	//console.log(filterlinks);console.log(filternodes);
 
 	//generate new network
 	generateGraph(filternodes,filterlinks);
-}
+	d3.selectAll("circle").raise(); // circles on top of the lines
 
+	simulation.nodes(filternodes);
+	simulation.force("link").links(filterlinks);
+	simulation.force("charge", d3.forceManyBody().strength(100 * charge))
+	simulation.alpha(2).restart();
+}
 
 
 //create line graph over time
