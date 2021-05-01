@@ -39,7 +39,7 @@ h1{
 
 
 div.tooltip {
-	position: absolute;
+	position:absolute;
 	text-align: left;
 	width: auto;
 	height: auto;
@@ -591,7 +591,7 @@ var y = d3.scaleLinear()
 
 linegraphsvg.append("g")
 	.attr("transform", "translate("+2*margin+",0)")
-  	.call(d3.axisLeft(y));
+  	.call(d3.axisLeft(y).tickSize(0));
 
 linegraphsvg.append("path")
   	.datum(linegraphData)
@@ -664,7 +664,7 @@ var timey = d3.scaleLinear()
 
 timegraphsvg.append("g")
 	.attr("transform", "translate("+2*margin+",0)")
-  	.call(d3.axisLeft(timey));
+  	.call(d3.axisLeft(timey).tickSize(0));
 
 timegraphsvg.append("path")
   	.datum(timegraphData)
@@ -683,7 +683,7 @@ timegraphsvg.append("circle")
   	.attr("cx",function(d) { return timex(+d.time) })
    	.attr("cy",function(d) { return timey(d.value) });
 
-}
+} // function end
 
 
 
@@ -691,13 +691,133 @@ timegraphsvg.append("circle")
 linegraphs(venmoData.links);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Function to make a bar graph showing the most active users (number of transactions) in the time span
+function userbargraph(nodesdata){
+	var userW = window.innerWidth*0.45;
+	var userH = window.innerHeight*0.6;
+	var margin = 30;
+	var n_bars = 40;
+	var usersvg = d3.select("#usergraph")
+				.append("svg")
+				.attr("width", 2*margin + userW)
+				.attr("height", 2*margin + userH)
+				.attr("id","usersvg");
+
+	// calculate bar width
+	var bar_width = (userW) / n_bars;
+	
+
+	// Sort the nodes by decreasing number of transactions (and take the first n)
+	sortedNodes = nodesdata.slice().sort((a, b) => d3.descending(a.n_trans, b.n_trans)).slice(0,n_bars);
+
+	// Construct the y scale based on the largest number of transactions
+	var max_trans = sortedNodes[0].n_trans;
+	var barscale = d3.scaleLinear().domain([1,max_trans]).range([userH,5]);
+	var xscale = d3.scaleBand().range([0,userW + margin]);
+	//console.log(sortedNodes);
+
+	// Draw some bars
+	var bars = usersvg.selectAll("g").data(sortedNodes) // attatch to the data
+			.enter().append("g")
+			// Make some rectangles (https://www.youtube.com/watch?v=lW3I7yz5nVo)
+			.attr("transform", function(d, i) {
+				return "translate(" + (Number(margin) + (i * bar_width)) + "," + barscale(Number(d.n_trans)) + ")";
+			})
+			.append("rect").attr("height", function(d) {
+				return (userH - barscale(Number(d.n_trans)));
+			})
+			.attr("width",bar_width)
+			.attr("fill", "lightsteelblue")
+			.attr('stroke','white');
+	
+	// X axis
+	usersvg.append('g')
+		.attr('class','xaxis')
+		.attr('transform', 'translate(' + (margin / 2) + ',' + userH + ')')
+		.call(d3.axisBottom(xscale).tickSize(0));
+	
+	// Y axis
+	usersvg.append('g')
+		.attr('class','yaxis')
+		.attr('transform','translate(' + margin / 2 + ',' + 0 + ')')
+		.call(d3.axisLeft(barscale).ticks(5).tickSize(0));
+		/*.append('text')
+			.attr('transform','translate(-130,40) rotate(-90)')
+			.attr('text-anchor', 'end')
+			.attr('fill', 'black')
+			.attr('font-size', '12px')
+			.attr('font-weight', 'bold')
+			.attr('x', 0)
+			.attr('y', 100)
+			.text('Number of Transactions');*/
+	
+	// Bars get a tooltip too!
+	var bar_tooltip = d3.select("#usergraph").append("div")
+		.attr("class", "tooltip")
+		.attr('id', 'bar_tooltip')
+		.style("opacity", 0)
+		.style("top", -2 * margin + "px");
+	
+	// bars turn to black on hover and show the tooltip
+	bars
+	.on("mouseover", function(event, d) {
+		d3.select(this).transition()
+			.duration(100)
+			.style("fill", "black");
+		
+		bar_tooltip.transition()
+			.duration(100)
+			.style("opacity", 1);
+
+		bar_tooltip
+			.html('Name: ' + d.display_name + '<br>' + 
+			'Number of Transactions: ' + d.n_trans + '<br>' + 
+			'Number of Neighbors (Degree Centrality): ' + d.neighbors.length)
+			.style("left", (event.pageX - 125) + "px")
+			.style("top", (event.pageY - 80) + "px")
+			.style("color", "white")
+		
+		// Image too because why not
+		img_tooltip.transition()
+			.duration(100)
+			.style("opacity", 1);
+
+		img_tooltip
+			.html(' ')   
+			.style("left", event.pageX - 190 + 10  + "px")
+			.style("top", event.pageY - 80 + "px")
+			.style("background-image", "url(" + d.photo_url + ")");
+
+		
+	})
+	.on("mouseout", function(event, d) {
+		d3.select(this).transition()
+			.duration(100)
+			.style("fill", "lightsteelblue");
+
+		bar_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0);
+
+		img_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0);
+	});
+
+
+};
+
+// Call the function
+userbargraph(venmoData.nodes);
+
 //create user graph
-var userW = "45vw";
+/*var userW = "45vw";
 var userH = "45vh";
 var usersvg = d3.select("#usergraph")
 	        .append("svg")
 	        .attr("width", userW)
-	        .attr("height", userH);
+	        .attr("height", userH);*/
 
 //create emoji graph
 var emojiW = "45vw";
