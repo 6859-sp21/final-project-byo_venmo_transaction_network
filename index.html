@@ -811,21 +811,142 @@ function userbargraph(nodesdata){
 // Call the function
 userbargraph(venmoData.nodes);
 
-//create user graph
-/*var userW = "45vw";
-var userH = "45vh";
-var usersvg = d3.select("#usergraph")
-	        .append("svg")
-	        .attr("width", userW)
-	        .attr("height", userH);*/
+// Function to make a bar graph showing the most used emojis in the time span
+function emojibargraph(linksdata){
+	var userW = window.innerWidth*0.45;
+	var userH = window.innerHeight*0.6;
+	var margin = 30;
+	var n_bars = 20;
+	var usersvg = d3.select("#emojigraph")
+				.append("svg")
+				.attr("width", 2*margin + userW)
+				.attr("height", 2*margin + userH)
+				.attr("id","usersvg");
+
+	// calculate bar width
+	var bar_width = (userW) / n_bars;
+
+	// Get ready for some emoji math
+	emojicounts = {}; // cumulative counts
+
+	// a function that returns true for (most) emojis
+	const regexExp = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/gi;
+
+	// loop through all links
+	for (var i = 0; i < linksdata.length; i++) {
+		notes = linksdata[i].note; // pull out the notes
+		for (var j = 0; j < notes.length; j++) { // some of the links have multiple notes, so loop through each one
+			if(regexExp.test(notes[j])) { // test the note for emojis
+				note_array = Array.from(notes[j]); // If so, split it into character / emoji chunks
+				for (let characters of note_array) { // Loop through these chunks
+					if (regexExp.test(characters)) { // If it's an emoji add it to the dictionary
+						if (characters in emojicounts) {
+							emojicounts[characters]++
+						} else {
+							emojicounts[characters] = 1
+						}
+					}
+				}
+			}
+		}
+	};
+	// woof
+
+	// Now we have to turn that dict into a list of smaller dicts because thats the only way I know how to sort
+	emojicounts_list = [];
+	for (const [key, value] of Object.entries(emojicounts)) {
+		emojicounts_list.push({"emoji":key, "count": value});
+	};
+	// sort, as promised
+	sorted_emojis = emojicounts_list.slice().sort((a, b) => d3.descending(a.count, b.count)).slice(0,n_bars);
+	//console.log(sorted_emojis);
+
+	// The rest is just making a bar graph
+	// Construct the y scale based on the largest number of transactions
+	var max_count = sorted_emojis[0].count;
+	var barscale = d3.scaleLinear().domain([1,max_count]).range([userH,5]);
+	var xscale = d3.scaleBand().domain(sorted_emojis.map(d => d.emoji)).range([0,userW]);
+
+	// Draw some bars
+	var bars = usersvg.selectAll("g").data(sorted_emojis) // attatch to the data
+			.enter().append("g")
+			// Make some rectangles (https://www.youtube.com/watch?v=lW3I7yz5nVo)
+			.attr("transform", function(d, i) {
+				return "translate(" + (Number(margin / 2) + (i * bar_width)) + "," + barscale(Number(d.count)) + ")";
+			})
+			.append("rect").attr("height", function(d) {
+				return (userH - barscale(Number(d.count)));
+			})
+			.attr("width",bar_width)
+			.attr("fill", "lightsteelblue")
+			.attr('stroke','white');
+	
+	// X axis
+	usersvg.append('g')
+		.attr('class','xaxis')
+		.attr('transform', 'translate(' + (margin / 2) + ',' + userH + ')')
+		.call(d3.axisBottom(xscale).tickSize(0));
+	
+	// Y axis
+	usersvg.append('g')
+		.attr('class','yaxis')
+		.attr('transform','translate(' + (margin / 2) + ',' + 0 + ')')
+		.call(d3.axisLeft(barscale).ticks(5).tickSize(0));
+		/*.append('text')
+			.attr('transform','translate(-130,40) rotate(-90)')
+			.attr('text-anchor', 'end')
+			.attr('fill', 'black')
+			.attr('font-size', '12px')
+			.attr('font-weight', 'bold')
+			.attr('x', 0)
+			.attr('y', 100)
+			.text('Number of Transactions');*/
+
+	// Bars get a tooltip too!
+	var bar_tooltip = d3.select("#emojigraph").append("div")
+		.attr("class", "tooltip")
+		.attr('id', 'bar_tooltip_e')
+		.style("opacity", 0)
+		.style("top", -2 * margin + "px");
+	
+	// bars turn to black on hover and show the tooltip
+	bars
+	.on("mouseover", function(event, d) {
+		d3.select(this).transition()
+			.duration(100)
+			.style("fill", "black");
+		
+		bar_tooltip.transition()
+			.duration(100)
+			.style("opacity", 1);
+
+		bar_tooltip
+			.html('Emoji: ' + d.emoji + '<br>' + 
+			'Number of Uses: ' + d.count)
+			.style("left", (event.pageX - 125) + "px")
+			.style("top", (event.pageY - 80) + "px")
+			.style("color", "white");		
+	})
+	.on("mouseout", function(event, d) {
+		d3.select(this).transition()
+			.duration(100)
+			.style("fill", "lightsteelblue");
+
+		bar_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0);
+	});
+
+};
+emojibargraph(venmoData.links);
 
 //create emoji graph
-var emojiW = "45vw";
+/*var emojiW = "45vw";
 var emojiH = "45vh";
 var emojisvg = d3.select("#emojigraph")
 	        .append("svg")
 	        .attr("width", emojiW)
-	        .attr("height", emojiH);
+	        .attr("height", emojiH);*/
 
 }); //end of then function
 
