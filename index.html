@@ -33,7 +33,6 @@ h1{
 .smallgraph{
 	border-style: solid;
 	display: inline-block;
-	margin: auto;
 	border-width: 1px;
 }
 
@@ -440,6 +439,8 @@ function generateGraph(nodesdata,linksdata){
 
 	//line graphs
 	linegraphs(linksdata);
+	userbargraph(nodesdata);
+	emojibargraph(linksdata);
 
 }
 
@@ -694,9 +695,12 @@ linegraphs(venmoData.links);
 
 // Function to make a bar graph showing the most active users (number of transactions) in the time span
 function userbargraph(nodesdata){
+
+	d3.select("#usersvg").remove();
+
 	var userW = window.innerWidth*0.45;
 	var userH = window.innerHeight*0.6;
-	var margin = 30;
+	var margin = 20;
 	var n_bars = 40;
 	var usersvg = d3.select("#usergraph")
 				.append("svg")
@@ -730,6 +734,8 @@ function userbargraph(nodesdata){
 			.attr("width",bar_width)
 			.attr("fill", "lightsteelblue")
 			.attr('stroke','white');
+
+	d3.select('#usersvg').append("text").attr("x",userW/3).attr('y',userH+15).text("Users - hover over bars to see details");
 	
 	// X axis
 	usersvg.append('g')
@@ -774,7 +780,7 @@ function userbargraph(nodesdata){
 			.html('Name: ' + d.display_name + '<br>' + 
 			'Number of Transactions: ' + d.n_trans + '<br>' + 
 			'Number of Neighbors (Degree Centrality): ' + d.neighbors.length)
-			.style("left", (event.pageX - 125) + "px")
+			.style("left", (event.pageX ) +60+ "px")
 			.style("top", (event.pageY - 80) + "px")
 			.style("color", "white")
 		
@@ -785,7 +791,7 @@ function userbargraph(nodesdata){
 
 		img_tooltip
 			.html(' ')   
-			.style("left", event.pageX - 190 + 10  + "px")
+			.style("left", event.pageX  + "px")
 			.style("top", event.pageY - 80 + "px")
 			.style("background-image", "url(" + d.photo_url + ")");
 
@@ -811,20 +817,23 @@ function userbargraph(nodesdata){
 // Call the function
 userbargraph(venmoData.nodes);
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Function to make a bar graph showing the most used emojis in the time span
 function emojibargraph(linksdata){
-	var userW = window.innerWidth*0.45;
-	var userH = window.innerHeight*0.6;
-	var margin = 30;
+	d3.select("#emojisvg").remove();
+
+	var emojiW = window.innerWidth*0.45;
+	var emojiH = window.innerHeight*0.6;
+	var margin = 20;
 	var n_bars = 20;
-	var usersvg = d3.select("#emojigraph")
+	var emojisvg = d3.select("#emojigraph")
 				.append("svg")
-				.attr("width", 2*margin + userW)
-				.attr("height", 2*margin + userH)
-				.attr("id","usersvg");
+				.attr("width", 2*margin + emojiW)
+				.attr("height", 2*margin + emojiH)
+				.attr("id","emojisvg");
 
 	// calculate bar width
-	var bar_width = (userW) / n_bars;
+	var bar_width = (emojiW) / n_bars;
 
 	// Get ready for some emoji math
 	emojicounts = {}; // cumulative counts
@@ -855,42 +864,52 @@ function emojibargraph(linksdata){
 	// Now we have to turn that dict into a list of smaller dicts because thats the only way I know how to sort
 	emojicounts_list = [];
 	for (const [key, value] of Object.entries(emojicounts)) {
-		emojicounts_list.push({"emoji":key, "count": value});
+		if ((key!=="’") && (key!=="")) {
+			emojicounts_list.push({"emoji":key, "count": value});
+		}
 	};
+
+	if (emojicounts_list.length == 0){
+		d3.select("#emojisvg").append("text").text("No emojis used!").attr("x",emojiW/2).attr("y",emojiH/2);
+		return -1;
+	}
+
+
 	// sort, as promised
 	sorted_emojis = emojicounts_list.slice().sort((a, b) => d3.descending(a.count, b.count)).slice(0,n_bars);
-	//console.log(sorted_emojis);
+	//console.log((sorted_emojis[17].emoji === ''));
 
 	// The rest is just making a bar graph
 	// Construct the y scale based on the largest number of transactions
 	var max_count = sorted_emojis[0].count;
-	var barscale = d3.scaleLinear().domain([1,max_count]).range([userH,5]);
-	var xscale = d3.scaleBand().domain(sorted_emojis.map(d => d.emoji)).range([0,userW]);
+	var barscale = d3.scaleLinear().domain([0.5,max_count]).range([emojiH,5]);
+	var xscale = d3.scaleBand().domain(sorted_emojis.map(d => d.emoji)).range([0,emojiW]);
 
 	// Draw some bars
-	var bars = usersvg.selectAll("g").data(sorted_emojis) // attatch to the data
+	var bars =emojisvg.selectAll("g").data(sorted_emojis) // attatch to the data
 			.enter().append("g")
 			// Make some rectangles (https://www.youtube.com/watch?v=lW3I7yz5nVo)
 			.attr("transform", function(d, i) {
-				return "translate(" + (Number(margin / 2) + (i * bar_width)) + "," + barscale(Number(d.count)) + ")";
+				return "translate(" + (xscale(d.emoji)+margin+xscale.bandwidth()/2-bar_width/2) + "," + barscale(Number(d.count)) + ")";
 			})
 			.append("rect").attr("height", function(d) {
-				return (userH - barscale(Number(d.count)));
+				return (emojiH - barscale(Number(d.count)));
 			})
 			.attr("width",bar_width)
 			.attr("fill", "lightsteelblue")
 			.attr('stroke','white');
 	
 	// X axis
-	usersvg.append('g')
+	emojisvg.append('g')
 		.attr('class','xaxis')
-		.attr('transform', 'translate(' + (margin / 2) + ',' + userH + ')')
+		.attr('transform', 'translate(' + (margin) + ',' + emojiH + ')')
+		.style('font-size','20px')
 		.call(d3.axisBottom(xscale).tickSize(0));
 	
 	// Y axis
-	usersvg.append('g')
+	emojisvg.append('g')
 		.attr('class','yaxis')
-		.attr('transform','translate(' + (margin / 2) + ',' + 0 + ')')
+		.attr('transform','translate(' + (margin) + ',' + 0 + ')')
 		.call(d3.axisLeft(barscale).ticks(5).tickSize(0));
 		/*.append('text')
 			.attr('transform','translate(-130,40) rotate(-90)')
