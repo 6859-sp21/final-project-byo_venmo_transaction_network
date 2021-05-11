@@ -11,7 +11,7 @@ svg {
 }
 
 body {
-	font-size: 15px;
+	font-size: 12px;
 	font-family: Helvetica, sans-serif;
 }
 
@@ -21,8 +21,8 @@ h1{
 
 .filtering{
 	display: inline-block;
-	padding: 10px;
-	margin-right: 20px;
+	padding: 5px;
+	margin-right: 5px;
 }
 
 .biggraph{
@@ -79,7 +79,10 @@ div.tooltip_img {
 <h1>Build Your Own Venmo Network</h1>
 
 <div id="searchfilter" class="filtering">
-	<label for="search">Search by name:</label><input type="text" id="search">
+	<label for="search">Search by name:</label><input type="text" id="search" size="13">
+</div>
+<div id="msgfilter" class="filtering">
+	<label for="search">Search messages:</label><input type="text" id="msg" size="10"><button>😀</button>
 </div>
 <div id="datefilter" class="filtering">
 	<label for="startdate">Start date:</label><input type="date" id="startdate" value="2018-07-01" min="2018-07-01" max="2019-02-28">
@@ -99,8 +102,11 @@ div.tooltip_img {
 	<input id="showall" type="button" value="Show all">
 </div>
 
-<div id="namesearches">
+<div>
+<div id="namesearches" style="margin-right: 50px;display: inline-block;">Names searched: </div>
 </div>
+
+<div id="nonodesfound" style="display: none;">No nodes found!</div>
 
 <div id="networkvis" class="biggraph"></div>
 
@@ -334,7 +340,6 @@ var simulation = d3.forceSimulation(venmoData.nodes)              // Force algor
 //generate new network with updated data
 function generateGraph(nodesdata,linksdata){
 	//console.log(nodesdata,linksdata);
-
 	node_tooltip.transition()
 		.duration(100)
 		.style("opacity", 0);
@@ -438,10 +443,17 @@ function generateGraph(nodesdata,linksdata){
 	simulation.alpha(0.01).restart();
 
 
-	//line graphs
+	//graphs
 	linegraphs(linksdata);
 	userbargraph(nodesdata);
 	emojibargraph(linksdata);
+
+
+	if (nodesdata.length>0){
+		document.getElementById("nonodesfound").style.display = "none";
+	} else {
+		document.getElementById("nonodesfound").style.display = "block";
+	}
 
 }
 
@@ -453,6 +465,7 @@ document.getElementById("datesubmit").addEventListener('click',filter);
 document.getElementById("showall").addEventListener('click',
 	function(){
 		document.getElementById("search").value = '';document.getElementById("namesearches").innerHTML="";
+		document.getElementById("msg").value="";
 		document.getElementById("startdate").value="2018-07-01";document.getElementById("enddate").value="2019-02-28";
 		namevalue=[];
 		click_namevalue=[];
@@ -489,25 +502,32 @@ function filter(event, type = "filter"){
 	//var chargesvalue = document.getElementById("chargeorpay").value === 'all' ? '.*' : document.getElementById("chargeorpay").value;
 	//console.log(namevalue);console.log(startdatevalue);console.log(enddatevalue);//console.log(chargesvalue);
 
+	var msgvalue = document.getElementById("msg").value === '' ? /.*/ : document.getElementById("msg").value;
+
+
 	//filter links and nodes
 	filterlinks = filterlinks.filter(function(d){
 		reformatDate = d.date_created[0].slice(6,10)+"-"+d.date_created[0].slice(0,2) +"-"+d.date_created[0].slice(3,5);
 
 		var searchcontains=false;
 
+		//handle case sensitivity? maybe later
 		for (var i = 0; i < namevalue.length; i++) {
 			if ((d.source.display_name.includes(namevalue[i])) || (d.target.display_name.includes(namevalue[i]))) {
 				searchcontains = true;
 			}
 		}
+
+		var notes = d.note.join()
 		//return (((d.source.display_name.search(namevalue) !== -1) || (d.target.display_name.search(namevalue) !== -1)) 
 		//	&& (reformatDate >= startdatevalue)
 		//	&& (reformatDate <= enddatevalue))
-		return ( ( (namevalue.length==0 && click_namevalue.length==0)
+		return ( ( (namevalue.length==0 && click_namevalue.length==0 && document.getElementById("msg").value==='')
 			|| searchcontains || (namevalue.includes(d.source.display_name)) || (namevalue.includes(d.target.display_name)) 
 			|| (click_namevalue.includes(d.source.display_name)) || (click_namevalue.includes(d.target.display_name))  )
 			&& (reformatDate >= startdatevalue)
-			&& (reformatDate <= enddatevalue))
+			&& (reformatDate <= enddatevalue)
+			|| (notes.search(msgvalue) > 0))
 	});
 
 	var allnames = []
@@ -712,7 +732,7 @@ function userbargraph(nodesdata){
 	// calculate bar width
 	var bar_width = (userW) / n_bars;
 	
-
+	if (nodesdata.length > 0) {
 	// Sort the nodes by decreasing number of transactions (and take the first n)
 	sortedNodes = nodesdata.slice().sort((a, b) => d3.descending(a.n_trans, b.n_trans)).slice(0,n_bars);
 
@@ -811,6 +831,7 @@ function userbargraph(nodesdata){
 			.duration(100)
 			.style("opacity", 0);
 	});
+	}
 
 
 };
@@ -973,12 +994,30 @@ var emojisvg = d3.select("#emojigraph")
 </script>
 
 
+<!--- emoji menu --->
+<script src="fgEmojiPicker.js"></script>
+    <script>
+        const emojiPicker = new FgEmojiPicker({
+            trigger: 'button',
+            removeOnSelection: false,
+            closeButton: true,
+            position: ['bottom', 'right'],
+            preFetch: true,
+            insertInto: document.getElementById('msg'),
+            emit(obj, triggerElement) {
+                console.log(obj, triggerElement);
+            }
+        });
+    </script>
+
+
 <h2 id="design-choices">Design Choices and Reflection</h2>
-<div>
+<div>Credits: emoji picker by woody180 and RahulChand028 <a href="https://github.com/woody180/vanilla-javascript-emoji-picker" target=" blank">(link)</a></div>
+
 <p>
 Kiran Gite and Shane Weisberg, for MIT 6.859 Interactive Data Visualization, Spring 2021. <a href="https://github.com/6859-sp21/final-project-byo_venmo_transaction_network" target=" blank"> [Source code]</a>
 </p>
-</div>
+
 
 
 </body>
