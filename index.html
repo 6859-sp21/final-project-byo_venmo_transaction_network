@@ -64,10 +64,39 @@ div.tooltip_img {
 	pointer-events: none;
 }
 
+div.tooltip_blur {
+	position: absolute;
+	text-align: center;
+	width: 50px;
+	height: 50px;
+	padding: 0px;
+	font: 14px sans-serif;
+	font-weight: 900;
+	border: 0px;
+	border-radius: 0px;
+	pointer-events: none;
+	background-color: #c8d5df;
+}
+
 #datesubmit{
 	background-color:#3d95ce;
 	margin-left: 20px;
 	margin-right: 20px;
+}
+
+div.instructions {
+	position:absolute;
+	text-align: left;
+	width: 90vw;
+	height: 60vh;
+	padding: 3px;
+	font: 14px sans-serif;
+	font-weight: 300;
+	border: 2px;
+	border-radius: 0px;
+	pointer-events: none;
+	background-color: #3d95ce;
+	opacity: 0.95;
 }
 
 </style>
@@ -78,6 +107,23 @@ div.tooltip_img {
 
 <h1>Build Your Own Venmo Network</h1>
 
+<div id="begin" class="filtering">
+	<input id="begin" type="button" value="Begin">
+</div>
+
+<select id="d3-dropdown">
+	<option value="None">Select User to Start Network</option>
+	<option value="None">None</option>
+	<option value="ClaytonSilva">ClaytonSilva</option>
+	<option value="Crew-Chiefs">Crew-Chiefs</option>
+	<option value="Matthew-Woodson-4">Matthew-Woodson-4</option>
+	<option value="blingq">blingq</option>
+	<option value="NehaParagi">NehaParagi</option>
+	<option value="BambinoTechnologiesInc">BambinoTechnologiesInc</option>
+	<option value="auntieKUMA">auntieKUMA</option>
+	<option value="WAFB-CreativeServices">WAFB-CreativeServices</option>
+</select>
+  
 <div id="searchfilter" class="filtering">
 	<label for="search">Search by name:</label><input type="text" id="search">
 </div>
@@ -101,9 +147,7 @@ div.tooltip_img {
 <div id="showalldiv" class="filtering">
 	<input id="showall" type="button" value="Show all">
 </div>
-<div id="begin" class="filtering">
-	<input id="begin" type="button" value="begin">
-</div>
+
 
 <div id="namesearches">
 </div>
@@ -126,11 +170,34 @@ div.tooltip_img {
 
 <script>
 
+// Instructions to please wait during loading
+var wind_width = window.innerWidth,
+	wind_height = window.innerHeight;
+
+var instructions0 = d3.select("body").append("div")
+		.attr("class", "instructions")
+		.style("left", (wind_width / 20) + "px")
+		.style("top", (1.75 * wind_height / 10) + "px");
+
+instructions0
+		.html("INSTRUCTIONS <br>")
+		.style('font-size','22px');
+instructions0
+		.append('text').text("Please Wait..."
+		)
+		.style('font-weight','normal')
+		.style('font-size','14px');
+
 Promise.all([
 //d3.csv("placeholder.csv")
 d3.json("https://raw.githubusercontent.com/6859-sp21/final-project-byo_venmo_transaction_network/main/venmo_gt4_first200k_full.json")
 ])
 .then(function(dt){
+
+// Disappear the preliminary instructions
+instructions0.transition()
+	.duration(100)
+	.style("opacity",0);
 
 venmoData = dt[0];
 //console.log(venmoData.links);
@@ -183,112 +250,19 @@ var img_tooltip = d3.select("body").append("div")
                .attr("class", "tooltip_img")
                .style("opacity", 0);
 
+// This will go directly on top of the image for privacy purposes
+var blur_tooltip = d3.select("body").append("div")
+               .attr("class", "tooltip_blur")
+               .style("opacity", 0);
+
 // linear scale for calculating edge width (may have to adjust the upper bound later)
-var stroke_scale = d3.scaleLinear().domain([1,102]).range([5,10]);
+var stroke_scale = d3.scaleLog().domain([1,102]).range([3,8]);
 
 //color scale: need to add legend at some point
 var color_scale = d3.scaleDiverging(d3.interpolateInferno).domain([1,2,10]); //definitely adjust bounds for more data
 
 
 var link = 0, node = 0;
-/*var link = g
-    		.selectAll("line")
-			.data(venmoData.links)
-			.join("line")
-			.style("stroke", "#aaa")
-			.style("stroke-width", function(d) {
-				return stroke_scale(d.weight);
-			});
-
-// Initialize the nodes
-var node = g
-			.selectAll("circle")
-			.data(venmoData.nodes)
-			.join("circle")
-			.attr("r", radius)
-			.style("fill", function(d){return color_scale(d.neighbors.length)});
-
-
-// Hovering functionality for the nodes and edges
-node
-	.on("mouseenter", function(event, d) {
-		//console.log(d);
-		// Show the tooltip with details
-		node_tooltip.transition()
-			.duration(100)
-			.style("opacity", 1);
-
-		node_tooltip
-			.html('Name: ' + d.display_name + '<br>' + 
-			'Number of Transactions: ' + d.n_trans + '<br>' + 
-			'Number of Neighbors (Degree Centrality): ' + d.neighbors.length + '<br>' + 
-			'Eigenvalue Centrality?')
-			.style("left", (event.pageX + 10) + "px")
-			.style("top", (event.pageY - 50) + "px")
-			.style("color", "white")
-
-		// Also show a tooltip with the image
-		img_tooltip.transition()
-			.duration(100)
-			.style("opacity", 1);
-
-		img_tooltip
-			.html(' ')   
-			.style("left", event.pageX + 10  + "px")
-			.style("top", event.pageY + 30 + "px")
-			.style("background-image", "url(" + d.photo_url + ")");
-	})
-	// And get rid of them when the mouse moves
-	.on("mouseleave", function(event, d) {
-		node_tooltip.transition()
-			.duration(100)
-			.style("opacity", 0);
-
-		img_tooltip.transition()
-			.duration(100)
-			.style("opacity", 0);
-
-	})
-	.on("click", function(event, d) {
-		filter(d,"click");
-	});
-
-
-
-// Same for edges
-link
-	.on("mouseenter", function(event, d) {
-		//console.log(d);
-		link_tooltip.transition()
-			.duration(100)
-			.style("opacity", 1);
-		
-		// Slightly different messages for edges with weight 1
-		if (d.weight == 1) {
-			var tooltip_text = 'User 1: ' + d.source.display_name + '<br>' + 
-				'User 2: ' + d.target.display_name + '<br>' + 
-				'Number of Transactions: ' + d.weight + '<br>' + 
-				'Message: ' + d.note + '<br>' + 
-				'Transaction Start Date: ' + d.date_created + '<br>' + 
-				'Transaction Completion Date: ' + d.date_completed + '<br>'
-		} else {
-			var tooltip_text = 'User 1: ' + d.source.display_name + '<br>' + 
-				'User 2: ' + d.target.display_name + '<br>' + 
-				'Number of Transactions: ' + d.weight + '<br>' + 
-				'Messages: ' + d.note + '<br>'
-		}
-
-		link_tooltip
-			.html(tooltip_text)
-			.style("left", (event.pageX + 10) + "px")
-			.style("top", (event.pageY - 100) + "px")
-			.style("color", "white")
-	})
-	.on("mouseleave", function(event, d) {
-		link_tooltip.transition()
-			.duration(100)
-			.style("opacity", 0);
-	});*/
 
 // There's probably a better way of locating the center of the network...
 var width = networksvg.attr("width"),
@@ -300,20 +274,61 @@ var width = networksvg.attr("width"),
 	svg_height = d3.select('#networkvis_inner').attr('height').slice(0,2)/100,
 	svg_height_px = wind_height * svg_height;
 
+// Instructions...Self explanatory
+var instructions = d3.select("body").append("div")
+		.attr("class", "instructions")
+		.style("left", (wind_width / 20) + "px")
+		.style("top", (1.75 * wind_height / 10) + "px");
+
+instructions
+		.html("INSTRUCTIONS <br>")
+		.style('font-size','22px');
+instructions
+		.append('text').text("Welcome to our Interactive Data Visualization where you can explore the network of publicly available " +
+		"Venmo transactions between July 2018 & February 2019. All data was scraped from the public Venmo API by Dan Salmon (is that right?)." +
+		"To begin, press the begin button. [More instructions on how to choose your starting configuration to come, probably.]" +
+		"Hover over the nodes (users) and edges (transactions) to see details. Click on colored nodes to add their neighbors to the network." +
+		"You can also add to your network by using either of the search bars to add individual users or by message content." +
+		"And don't forget to check out the plots at the bottom for more details on the network you've built."
+		)
+		.style('font-weight','normal')
+		.style('font-size','14px');
+
 //var namevalue = [document.getElementById("search").value];
-namevalue = ["ClaytonSilva", "Crew-Chiefs", "Matthew-Woodson-4", "blingq"];
+var namevalue = ["blingq"];
 //namevalue = [];
-click_namevalue = [];
+var click_namevalue = [];
 var simulation = 0;
 //var begin = false;
 
+
+// Listen for the dropdown that will give the initial starting point for the network
+var selected = "None";
+d3.select("select")
+  .on("change",function(d){
+    selected = d3.select("#d3-dropdown").node().value;
+    console.log( selected );
+    d3.select("#selected-dropdown").text(selected);
+	if (selected == "None") {
+		namevalue = ["blingq"];
+	} else {
+		namevalue = [];
+		namevalue.push(selected);
+	};
+});
+
+// When the user clicks begin, the instructions will disappear and the simulation begins, woo!
 document.getElementById("begin").addEventListener('click',
 	function(event){
 		start_sim();
 		filter(event, type = "filter", start = true);
-		
+		instructions
+			.transition()
+			.duration(300)
+			.style("opacity",0);
 	});
 
+// A function that does the graph stuff
 function generateGraph(nodesdata,linksdata, start = false){
 	//console.log(nodesdata); console.log(linksdata);
 
@@ -324,6 +339,10 @@ function generateGraph(nodesdata,linksdata, start = false){
 	img_tooltip.transition()
 		.duration(100)
 		.style("opacity", 0);
+
+	blur_tooltip.transition()
+		.duration(100)
+		.style("opacity", 1);
 
 	//update link and node with new data
 	link = g
@@ -379,6 +398,18 @@ function generateGraph(nodesdata,linksdata, start = false){
 			.style("left", event.pageX + 10  + "px")
 			.style("top", event.pageY + 30 + "px")
 			.style("background-image", "url(" + d.photo_url + ")");
+		
+		// Almost immediately cover the image
+		blur_tooltip.transition()
+			.duration(1000)
+			.ease(d3.easeCubicOut)
+			.style("opacity",0.95);
+		
+		blur_tooltip
+			.html(' ')
+			.style("left", event.pageX + 10  + "px")
+			.style("top", event.pageY + 30 + "px");
+			
 	})
 	.on("mouseleave", function(event, d) {
 		node_tooltip.transition()
@@ -386,6 +417,10 @@ function generateGraph(nodesdata,linksdata, start = false){
 			.style("opacity", 0);
 
 		img_tooltip.transition()
+			.duration(100)
+			.style("opacity", 0);
+		
+		blur_tooltip.transition()
 			.duration(100)
 			.style("opacity", 0);
 
