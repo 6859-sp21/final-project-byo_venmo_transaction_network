@@ -134,7 +134,6 @@ div.instructions {
 	<label for="startdate">Start date:</label><input type="date" id="startdate" value="2018-07-01" min="2018-07-01" max="2019-02-28">
 	<label for="enddate">End date:</label><input type="date" id="enddate" value="2019-02-28" min="2018-07-01" max="2019-02-28">
 	<input id="datesubmit" type="button" value="Filter">
-	<input id="searchsubmit" type="button" value="Clear name searches">
 </div>
 <div id="chargefilter" class="filtering" style="display:none">
 <label for="chargeorpay">Charges, payments, or both:</label>
@@ -145,14 +144,14 @@ div.instructions {
 </select>
 </div>
 <div id="showalldiv" class="filtering">
-	<input id="showall" type="button" value="Show all">
+	<input id="showall" type="button" value="Clear all users">
 </div>
 
 
 <div id="namesearches">
 </div>
 
-<div id="nonodesfound" style="display: none;">No nodes found!</div>
+<div id="nonodesfound" style="display: none;">No users found!</div>
 
 <div id="networkvis" class="biggraph"></div>
 
@@ -228,7 +227,7 @@ var g = networksvg.append("g")
 
 var zoom_handler = d3.zoom()
     .on("zoom", zoom_actions)
-    .scaleExtent([1,8]);
+    .scaleExtent([0.5,8]);
 
 zoom_handler(networksvg);  
 
@@ -259,7 +258,7 @@ var blur_tooltip = d3.select("body").append("div")
 var stroke_scale = d3.scaleLog().domain([1,102]).range([3,8]);
 
 //color scale: need to add legend at some point
-var color_scale = d3.scaleDiverging(d3.interpolateInferno).domain([1,2,10]); //definitely adjust bounds for more data
+var color_scale = d3.scaleDiverging(d3.interpolateInferno).domain([1,12,25]); //definitely adjust bounds for more data
 
 
 var link = 0, node = 0;
@@ -366,7 +365,8 @@ function generateGraph(nodesdata,linksdata, start = false){
 		.data(nodesdata)
 		.join("circle")
 		.attr("r", radius)
-		.style("fill", function(d){return color_scale(d.neighbors.length)});
+		.style("fill", function(d){return color_scale(d.neighbors.length)})
+		.attr("id",d =>d.name);
 
 	/*node = node.data(nodesdata)
 		.join("circle")
@@ -465,24 +465,41 @@ function generateGraph(nodesdata,linksdata, start = false){
 	});
 
 	//restart simulation
-	if (!start) {
+	if (nodesdata.length==0){
+		document.getElementById("nonodesfound").style.display = "block";
+		if (!start) {
 		simulation.nodes(nodesdata);
-		simulation.force("link").links(linksdata);
-		simulation.force("center", d3.forceCenter(svg_width_px / 2, svg_height_px / 2).strength(center_strength))  
-		simulation.alpha(0.01).restart();
+		//simulation
+		//simulation.force("charge", d3.forceManyBody().strength((1/linksdata.length)*charge));
+		simulation.force("link").links(linksdata);//.strength(linksdata.length*link_strength/1000);
+		//simulation.force("center", d3.forceCenter(svg_width_px / 2, svg_height_px / 2).strength(center_strength))  
+		simulation.alpha(0.2).restart();
 
-
-		//line graphs
 		linegraphs(linksdata);
 		userbargraph(nodesdata);
 		emojibargraph(linksdata);
+		}
+	
+	} else {
+		document.getElementById("nonodesfound").style.display = "none";
+		if (!start) {
+		simulation.nodes(nodesdata);
+		//simulation
+		simulation.force("link").links(linksdata).strength(link_strength);
+		simulation.force("center", d3.forceCenter(svg_width_px / 2, svg_height_px / 2).strength(center_strength))  
+		simulation.alpha(0.2).restart();
+
+		linegraphs(linksdata);
+		userbargraph(nodesdata);
+		emojibargraph(linksdata);
+		}
 	}
 
 }
 
 //add functions to filter buttons
-document.getElementById("searchsubmit").addEventListener('click',
-	function(event){document.getElementById("search").value = '';namevalue=[];document.getElementById("namesearches").innerHTML="";filter(event);});
+// document.getElementById("searchsubmit").addEventListener('click',
+// 	function(event){document.getElementById("search").value = '';namevalue=[];document.getElementById("namesearches").innerHTML="";filter(event);});
 document.getElementById("datesubmit").addEventListener('click',filter);
 //document.getElementById("chargefilter").addEventListener('change',filter);
 document.getElementById("showall").addEventListener('click',
@@ -492,7 +509,7 @@ document.getElementById("showall").addEventListener('click',
 		document.getElementById("startdate").value="2018-07-01";document.getElementById("enddate").value="2019-02-28";
 		namevalue=[];
 		click_namevalue=[];
-		generateGraph(venmoData.nodes,venmoData.links);
+		generateGraph([],[]);
 	});
 
 
@@ -631,6 +648,7 @@ var linegraphsvg = d3.select("#graphoverdate")
 
 linegraphtmp = {};
 
+//console.log(linksdata);
 mdy_formatter = d3.timeParse("%m/%d/%Y");
 
 for (var i = 0; i < linksdata.length; i++) {
@@ -650,6 +668,8 @@ linegraphData = [];
 for (const key of Object.keys(linegraphtmp)) {
 	linegraphData.push({"date":key,"value":linegraphtmp[key]});
 }
+
+linegraphData.sort((a,b) => new Date(a.date) - new Date(b.date));
 
 //console.log(linegraphData);
 
@@ -676,20 +696,31 @@ linegraphsvg.append("path")
   	.datum(linegraphData)
   	.attr("fill", "none")
   	.attr("stroke", "orange")
-  	.attr("stroke-width", 1.5)
+  	.attr("stroke-width", 3)
   	.attr("d", d3.line()
     	.x(function(d) { return x(new Date(d.date)) })
     	.y(function(d) { return y(d.value) }) );
 
 //console.log(linegraphData);
 
-linegraphsvg.append("circle")
+linegraphsvg.append("text").attr("x",lineW/2-margin*9).attr("y", margin).attr("id","dateinfo1");
+linegraphsvg.append("text").attr("x",lineW/2-margin*9).attr("y", margin+20).attr("id","dateinfo2");
+
+linegraphsvg.selectAll("circle")
   	.data(linegraphData)
   	.join("circle")
-  	.attr("fill", "orange")
-  	.attr("r",3)
+  	.attr("fill", "green")
+  	.attr("r",5)
   	.attr("cx",function(d) { return x(new Date(d.date)) })
-   	.attr("cy",function(d) { return y(d.value) });
+   	.attr("cy",function(d) { return y(d.value) })
+   	.on("mouseover",function(e,d){
+   		d3.select("#dateinfo1").text("Date: "+ d.date);
+   		d3.select("#dateinfo2").text("Transaction count: " + d.value );
+   	})
+   	.on("mouseout",function(e,d){
+   		d3.select("#dateinfo1").text("" );
+      	d3.select("#dateinfo2").text("" );
+   	});
 
 ///////////////////////////////////////////////////////////////////////////////////
 //create line graph over time
@@ -748,20 +779,30 @@ timegraphsvg.append("g")
 timegraphsvg.append("path")
   	.datum(timegraphData)
   	.attr("fill", "none")
-  	.attr("stroke", "orange")
-  	.attr("stroke-width", 1.5)
+  	.attr("stroke", "green")
+  	.attr("stroke-width", 3)
   	.attr("d", d3.line()
     	.x(function(d) { return timex(+d.time) })
     	.y(function(d) { return timey(d.value) }) );
 
-timegraphsvg.append("circle")
+timegraphsvg.append("text").attr("x",lineW/2 - 3*margin).attr("y", margin).attr("id","timeinfo1");
+timegraphsvg.append("text").attr("x",lineW/2 - 3*margin).attr("y", margin+20).attr("id","timeinfo2");
+
+timegraphsvg.selectAll("circle")
   	.data(timegraphData)
   	.join("circle")
   	.attr("fill", "orange")
-  	.attr("r",3)
+  	.attr("r",5)
   	.attr("cx",function(d) { return timex(+d.time) })
-   	.attr("cy",function(d) { return timey(d.value) });
-
+   	.attr("cy",function(d) { return timey(d.value) })
+   	.on("mouseover",function(e,d){
+   		d3.select("#timeinfo1").text("Hour: "+ d.time+":00 EST");
+   		d3.select("#timeinfo2").text("Transaction count: " + d.value );
+   	})
+   	.on("mouseout",function(e,d){
+   		d3.select("#timeinfo1").text("" );
+      	d3.select("#timeinfo2").text("" );
+   	});
 } // function end
 
 
@@ -775,7 +816,6 @@ linegraphs(venmoData.links);
 function userbargraph(nodesdata){
 
 	d3.select("#usersvg").remove();
-
 	var userW = window.innerWidth*0.45;
 	var userH = window.innerHeight*0.6;
 	var margin = 20;
@@ -786,8 +826,12 @@ function userbargraph(nodesdata){
 				.attr("height", 2*margin + userH)
 				.attr("id","usersvg");
 
+
+	if (nodesdata.length > 0) {
+
 	// calculate bar width
-	var bar_width = (userW) / n_bars;
+	var bar_width = (userW) / n_bars -1;
+
 	
 
 	// Sort the nodes by decreasing number of transactions (and take the first n)
@@ -800,31 +844,39 @@ function userbargraph(nodesdata){
 	//console.log(sortedNodes);
 
 	// Draw some bars
-	var bars = usersvg.selectAll("g").data(sortedNodes) // attatch to the data
-			.enter().append("g")
+	var bars = usersvg.selectAll("rect").data(sortedNodes) // attatch to the data
+			.join("rect")
 			// Make some rectangles (https://www.youtube.com/watch?v=lW3I7yz5nVo)
 			.attr("transform", function(d, i) {
-				return "translate(" + (Number(margin) + (i * bar_width)) + "," + barscale(Number(d.n_trans)) + ")";
+				return "translate(" + (Number(margin) + (i * bar_width) + i) + "," + barscale(Number(d.n_trans)) + ")";
 			})
-			.append("rect").attr("height", function(d) {
+			.attr("height", function(d) {
 				return (userH - barscale(Number(d.n_trans)));
 			})
 			.attr("width",bar_width)
-			.attr("fill", "lightsteelblue")
-			.attr('stroke','white');
+			.attr("fill", "#3d95ce")
+			.attr("stroke-width","2px")
+			.attr('stroke',function(d){
+				el = document.getElementById(d.name);
+				if(el && el.style.strokeWidth == "5px" ){
+					return '#39FF14';
+				} else {
+					return 'white';
+				}
+			});
 
 	d3.select('#usersvg').append("text").attr("x",userW/3).attr('y',userH+15).text("Users - hover over bars to see details");
 	
 	// X axis
 	usersvg.append('g')
 		.attr('class','xaxis')
-		.attr('transform', 'translate(' + (margin / 2) + ',' + userH + ')')
+		.attr('transform', 'translate(' + (margin / 2 +8) + ',' + userH + ')')
 		.call(d3.axisBottom(xscale).tickSize(0));
 	
 	// Y axis
 	usersvg.append('g')
 		.attr('class','yaxis')
-		.attr('transform','translate(' + margin / 2 + ',' + 0 + ')')
+		.attr('transform','translate(' + (margin / 2 + 8) + ',' + 0 + ')')
 		.call(d3.axisLeft(barscale).ticks(5).tickSize(0));
 		/*.append('text')
 			.attr('transform','translate(-130,40) rotate(-90)')
@@ -866,14 +918,36 @@ function userbargraph(nodesdata){
 	.on("mouseout", function(event, d) {
 		d3.select(this).transition()
 			.duration(100)
-			.style("fill", "lightsteelblue");
+			.style("fill", "#3d95ce");
 
 		bar_tooltip.transition()
 			.duration(100)
 			.style("opacity", 0);
 
+	})
+	.on("click", function(event,d){
+
+		myel = d3.select(this);
+		//console.log(typeof myel.style("fill"));
+
+		if (myel.style("stroke")== "rgb(57, 255, 20)"){
+			myel.style("stroke", "white");
+		} else {
+			myel.style("stroke", "#39FF14");
+		}
+
+		el = document.getElementById(d.name);
+		if (el.style.strokeWidth == "5px" ){
+			el.style.strokeWidth = "0px";
+			el.style.stroke = "none";
+		} else {
+			el.style.strokeWidth = "5px";
+			el.style.stroke = "#39FF14";
+		}
+		
 	});
 
+}
 
 };
 
@@ -942,38 +1016,60 @@ function emojibargraph(linksdata){
 	sorted_emojis = emojicounts_list.slice().sort((a, b) => d3.descending(a.count, b.count)).slice(0,n_bars);
 	//console.log((sorted_emojis[17].emoji === ''));
 
+	var bubble = data => d3.pack()
+    .size([emojiW, emojiH])
+    .padding(2)(d3.hierarchy({ children: data }).sum(d => d.count));
+
+    var root = bubble(sorted_emojis);
+
+    console.log(root.children);
+
+    var bub = emojisvg.selectAll('circle')
+    					.data(root.children)
+    					.join('circle')
+    					.attr('transform',d=>'translate('+(d.x- (d.r+15)/2)+','+(3*margin+d.y)+')')
+    					.attr('r',d=>d.data.r);
+
+    var labels = emojisvg.selectAll('text')
+    					.data(root.children)
+    					.join('text')
+    					.attr('transform',d=>'translate('+(d.x - (d.r+15)/2)+','+(3*margin+d.y)+')')
+    					.style('font-size',d=>d.r+15)
+    					.text(d=>d.data.emoji);
+
+
 	// The rest is just making a bar graph
 	// Construct the y scale based on the largest number of transactions
-	var max_count = sorted_emojis[0].count;
-	var barscale = d3.scaleLinear().domain([0.5,max_count]).range([emojiH,5]);
-	var xscale = d3.scaleBand().domain(sorted_emojis.map(d => d.emoji)).range([0,emojiW]);
+	// var max_count = sorted_emojis[0].count;
+	// var barscale = d3.scaleLinear().domain([0.5,max_count]).range([emojiH,5]);
+	// var xscale = d3.scaleBand().domain(sorted_emojis.map(d => d.emoji)).range([0,emojiW]);
 
-	// Draw some bars
-	var bars =emojisvg.selectAll("g").data(sorted_emojis) // attatch to the data
-			.enter().append("g")
-			// Make some rectangles (https://www.youtube.com/watch?v=lW3I7yz5nVo)
-			.attr("transform", function(d, i) {
-				return "translate(" + (xscale(d.emoji)+margin+xscale.bandwidth()/2-bar_width/2) + "," + barscale(Number(d.count)) + ")";
-			})
-			.append("rect").attr("height", function(d) {
-				return (emojiH - barscale(Number(d.count)));
-			})
-			.attr("width",bar_width)
-			.attr("fill", "lightsteelblue")
-			.attr('stroke','white');
+	// // Draw some bars
+	// var bars =emojisvg.selectAll("g").data(sorted_emojis) // attatch to the data
+	// 		.enter().append("g")
+	// 		// Make some rectangles (https://www.youtube.com/watch?v=lW3I7yz5nVo)
+	// 		.attr("transform", function(d, i) {
+	// 			return "translate(" + (xscale(d.emoji)+margin+xscale.bandwidth()/2-bar_width/2) + "," + barscale(Number(d.count)) + ")";
+	// 		})
+	// 		.append("rect").attr("height", function(d) {
+	// 			return (emojiH - barscale(Number(d.count)));
+	// 		})
+	// 		.attr("width",bar_width)
+	// 		.attr("fill", "lightsteelblue")
+	// 		.attr('stroke','white');
 	
-	// X axis
-	emojisvg.append('g')
-		.attr('class','xaxis')
-		.attr('transform', 'translate(' + (margin) + ',' + emojiH + ')')
-		.style('font-size','20px')
-		.call(d3.axisBottom(xscale).tickSize(0));
+	// // X axis
+	// emojisvg.append('g')
+	// 	.attr('class','xaxis')
+	// 	.attr('transform', 'translate(' + (margin) + ',' + emojiH + ')')
+	// 	.style('font-size','20px')
+	// 	.call(d3.axisBottom(xscale).tickSize(0));
 	
-	// Y axis
-	emojisvg.append('g')
-		.attr('class','yaxis')
-		.attr('transform','translate(' + (margin) + ',' + 0 + ')')
-		.call(d3.axisLeft(barscale).ticks(5).tickSize(0));
+	// // Y axis
+	// emojisvg.append('g')
+	// 	.attr('class','yaxis')
+	// 	.attr('transform','translate(' + (margin) + ',' + 0 + ')')
+	// 	.call(d3.axisLeft(barscale).ticks(5).tickSize(0));
 		/*.append('text')
 			.attr('transform','translate(-130,40) rotate(-90)')
 			.attr('text-anchor', 'end')
@@ -992,27 +1088,27 @@ function emojibargraph(linksdata){
 		.style("top", -2 * margin + "px");
 	
 	// bars turn to black on hover and show the tooltip
-	bars
+	labels
 	.on("mouseover", function(event, d) {
-		d3.select(this).transition()
-			.duration(100)
-			.style("fill", "black");
+		// d3.select(this).transition()
+		// 	.duration(100)
+		// 	.style("fill", "black");
 		
 		bar_tooltip.transition()
 			.duration(100)
 			.style("opacity", 1);
 
 		bar_tooltip
-			.html('Emoji: ' + d.emoji + '<br>' + 
-			'Number of Uses: ' + d.count)
-			.style("left", (event.pageX - 125) + "px")
-			.style("top", (event.pageY - 80) + "px")
+			.html('Emoji: ' + d.data.emoji + '<br>' + 
+			'Number of Uses: ' + d.data.count)
+			.style("left", (event.pageX - 25) + "px")
+			.style("top", (event.pageY - 20) + "px")
 			.style("color", "white");		
 	})
 	.on("mouseout", function(event, d) {
-		d3.select(this).transition()
-			.duration(100)
-			.style("fill", "lightsteelblue");
+		// d3.select(this).transition()
+		// 	.duration(100)
+		// 	.style("fill", "lightsteelblue");
 
 		bar_tooltip.transition()
 			.duration(100)
