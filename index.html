@@ -686,7 +686,7 @@ linegraphsvg.append("g")
 
 var y = d3.scaleLinear()
   	.domain([0, d3.max(linegraphData, function(d) { return +d.value; })])
-  	.range([ lineH, margin]);
+  	.range([ lineH , margin + 10]);
 
 
 //console.log(typeof linegraphData[0].date,x(linegraphData[0].date),y(linegraphData[0].value));
@@ -810,7 +810,7 @@ timegraphsvg.append("g")
 
 var timey = d3.scaleLinear()
   	.domain([0, d3.max(timegraphData, function(d) { return +d.value; })])
-  	.range([ lineH, margin]);
+  	.range([ lineH, margin + 10]);
 
 
 //console.log(typeof linegraphData[0].date,x(linegraphData[0].date),y(linegraphData[0].value));
@@ -924,7 +924,7 @@ function userbargraph(nodesdata){
 
 	// Construct the y scale based on the largest number of transactions
 	var max_trans = sortedNodes[0].n_trans;
-	var barscale = d3.scaleLinear().domain([1,max_trans]).range([userH,5]);
+	var barscale = d3.scaleLinear().domain([1,max_trans]).range([userH,margin + 10]);
 	var xscale = d3.scaleBand().range([0,userW + margin]);
 	//console.log(sortedNodes);
 
@@ -1198,9 +1198,10 @@ function emojibargraph(linksdata){
 	// bars turn to black on hover and show the tooltip
 	labels
 	.on("mouseover", function(event, d) {
+		// console.log(d.r);
 		// d3.select(this).transition()
-		// 	.duration(100)
-		// 	.style("fill", "black");
+		// 	.duration(500)
+		// 	.style("r", 5);
 		
 		bar_tooltip.transition()
 			.duration(100)
