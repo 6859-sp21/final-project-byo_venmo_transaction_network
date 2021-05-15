@@ -89,14 +89,18 @@ div.instructions {
 	text-align: left;
 	width: 90vw;
 	height: 60vh;
-	padding: 3px;
+	padding: 12px;
 	font: 14px sans-serif;
 	font-weight: 300;
-	border: 2px;
-	border-radius: 0px;
+	color: white;
+	border: 8px;
+	border-style:double;
+	border-width: 2px;
+	border-color: rgb(8, 4, 2);
+	border-radius: 8px;
 	pointer-events: none;
 	background-color: #3d95ce;
-	opacity: 0.95;
+	opacity: 01;
 }
 
 </style>
@@ -123,9 +127,14 @@ div.instructions {
 	<option value="auntieKUMA">auntieKUMA</option>
 	<option value="WAFB-CreativeServices">WAFB-CreativeServices</option>
 </select>
+<div></div>
+<div></div>
+<div></div>
+<div></div>
+<div></div>
   
 <div id="searchfilter" class="filtering">
-	<label for="search">Search by name:</label><input type="text" id="search">
+	<label for="search">Search by Username:</label><input type="text" id="search">
 </div>
 <div id="msgfilter" class="filtering">
 	<label for="search">Search messages:</label><input type="text" id="msg" size="10"><button>😀</button>
@@ -176,11 +185,13 @@ var wind_width = window.innerWidth,
 var instructions0 = d3.select("body").append("div")
 		.attr("class", "instructions")
 		.style("left", (wind_width / 20) + "px")
-		.style("top", (1.75 * wind_height / 10) + "px");
+		.style("top", "120px");
+		//.style("top", (1.75 * wind_height / 10) + "px");
 
 instructions0
-		.html("INSTRUCTIONS <br>")
-		.style('font-size','22px');
+		.html("Instructions <br>")
+		.style('font-size','22px')
+		.style('font-weight','700');
 instructions0
 		.append('text').text("Please Wait..."
 		)
@@ -254,8 +265,8 @@ var blur_tooltip = d3.select("body").append("div")
                .attr("class", "tooltip_blur")
                .style("opacity", 0);
 
-// linear scale for calculating edge width (may have to adjust the upper bound later)
-var stroke_scale = d3.scaleLog().domain([1,102]).range([3,8]);
+// log scale for calculating edge width (may have to adjust the upper bound later)
+var stroke_scale = d3.scaleLog().domain([1,102]).range([2,8]);
 
 //color scale: need to add legend at some point
 var color_scale = d3.scaleDiverging(d3.interpolateInferno).domain([1,12,25]); //definitely adjust bounds for more data
@@ -277,18 +288,22 @@ var width = networksvg.attr("width"),
 var instructions = d3.select("body").append("div")
 		.attr("class", "instructions")
 		.style("left", (wind_width / 20) + "px")
-		.style("top", (1.75 * wind_height / 10) + "px");
+		.style("top", "120px");
+		//.style("top", (1.75 * wind_height / 10) + "px");
 
 instructions
-		.html("INSTRUCTIONS <br>")
-		.style('font-size','22px');
+		.html("Instructions <br>")
+		.style('font-size','22px')
+		.style('font-weight','700');
 instructions
 		.append('text').text("Welcome to our Interactive Data Visualization where you can explore the network of publicly available " +
 		"Venmo transactions between July 2018 & February 2019. All data was scraped from the public Venmo API by Dan Salmon (is that right?)." +
-		"To begin, press the begin button. [More instructions on how to choose your starting configuration to come, probably.]" +
+		"To begin, select a starting user from the dropdown menu and press the begin button to display that user and their immediate neighbors. " +
 		"Hover over the nodes (users) and edges (transactions) to see details. Click on colored nodes to add their neighbors to the network." +
 		"You can also add to your network by using either of the search bars to add individual users or by message content." +
-		"And don't forget to check out the plots at the bottom for more details on the network you've built."
+		"And don't forget to check out the plots at the bottom for more details on the network you've built." +
+		"While you're exploring, take some time to consider the data you've sent publicly over Venmo." +
+		"You may not be in this small subset of the data, but would you want a stranger viewing your transaction history as part of their final project?"
 		)
 		.style('font-weight','normal')
 		.style('font-size','14px');
@@ -353,13 +368,6 @@ function generateGraph(nodesdata,linksdata, start = false){
 				return stroke_scale(d.weight);
 			});
 
-	/*link = link.data(linksdata)
-		.join("line")
-		.style("stroke", "#aaa")
-		.style("stroke-width", function(d) {
-			return stroke_scale(d.weight);
-		})*/
-
 	node = g
 		.selectAll("circle")
 		.data(nodesdata)
@@ -367,11 +375,6 @@ function generateGraph(nodesdata,linksdata, start = false){
 		.attr("r", radius)
 		.style("fill", function(d){return color_scale(d.neighbors.length)})
 		.attr("id",d =>d.name);
-
-	/*node = node.data(nodesdata)
-		.join("circle")
-		.attr("r", radius)
-		.style("fill", function(d){return color_scale(d.neighbors.length)});*/
 	
 	// Had to paste the same mouse listeners in here. Probably a smarter way...
 	node
@@ -384,7 +387,7 @@ function generateGraph(nodesdata,linksdata, start = false){
 		node_tooltip
 			.html('Username: ' + d.name + '<br>' + 
 			'Number of Transactions: ' + d.n_trans + '<br>' + 
-			'Number of Neighbors (Degree Centrality): ' + d.neighbors.length + '<br>')
+			'Number of Neighbors: ' + d.neighbors.length + '<br>')
 			.style("left", (event.pageX + 10) + "px")
 			.style("top", (event.pageY - 50) + "px")
 			.style("color", "white")
@@ -909,7 +912,7 @@ function userbargraph(nodesdata){
 		bar_tooltip
 			.html('Username: ' + d.name + '<br>' + 
 			'Number of Transactions: ' + d.n_trans + '<br>' + 
-			'Number of Neighbors (Degree Centrality): ' + d.neighbors.length)
+			'Number of Neighbors: ' + d.neighbors.length)
 			.style("left", (event.pageX ) +60+ "px")
 			.style("top", (event.pageY - 80) + "px")
 			.style("color", "white")
