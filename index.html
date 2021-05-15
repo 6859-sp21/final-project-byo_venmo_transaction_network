@@ -111,10 +111,6 @@ div.instructions {
 
 <h1>Build Your Own Venmo Network</h1>
 
-<div id="begin" class="filtering">
-	<input id="begin" type="button" value="Begin">
-</div>
-
 <select id="d3-dropdown">
 	<option value="None">Select User to Start Network</option>
 	<option value="None">None</option>
@@ -127,6 +123,10 @@ div.instructions {
 	<option value="auntieKUMA">auntieKUMA</option>
 	<option value="WAFB-CreativeServices">WAFB-CreativeServices</option>
 </select>
+
+<div id="begin" class="filtering">
+	<input id="begin" type="button" value="Begin">
+</div>
 <div></div>
 <div></div>
 <div></div>
@@ -303,13 +303,13 @@ instructions
 		"You can also add to your network by using either of the search bars to add individual users or by message content." +
 		"And don't forget to check out the plots at the bottom for more details on the network you've built." +
 		"While you're exploring, take some time to consider the data you've sent publicly over Venmo." +
-		"You may not be in this small subset of the data, but would you want a stranger viewing your transaction history as part of their final project?"
+		"You may or may not be in this small subset of the data, but would you want a stranger viewing your transaction history as part of their final project?"
 		)
 		.style('font-weight','normal')
 		.style('font-size','14px');
 
 //var namevalue = [document.getElementById("search").value];
-var namevalue = ["blingq"];
+var namevalue = ["blingq","Jake-Castillo","madeline-cooper-1"];
 //namevalue = [];
 var click_namevalue = [];
 var simulation = 0;
@@ -695,6 +695,17 @@ linegraphsvg.append("g")
 	.attr("transform", "translate("+2*margin+",0)")
   	.call(d3.axisLeft(y).tickSize(0));
 
+datetitle = linegraphsvg.append('text')
+	.attr('transform','translate(' + lineW / 2 + ',20)')
+	.attr('text-anchor','middle')
+	.attr('fill','black')
+	.attr('font-size', '16px')
+	.attr('font-weight', 'bold')
+	.attr('x', 0)
+	.attr('y', 0)
+	.style("opacity",1)
+	.text('Total Transactions by Date');
+
 linegraphsvg.append("path")
   	.datum(linegraphData)
   	.attr("fill", "none")
@@ -709,6 +720,12 @@ linegraphsvg.append("path")
 linegraphsvg.append("text").attr("x",lineW/2-margin*9).attr("y", margin).attr("id","dateinfo1");
 linegraphsvg.append("text").attr("x",lineW/2-margin*9).attr("y", margin+20).attr("id","dateinfo2");
 
+var line_tooltip_left = d3.select("#graphoverdate").append("div")
+		.attr("class", "tooltip")
+		.attr('id', 'line_tooltip_left')
+		.style("opacity", 0)
+		.style("top", -2 * margin + "px");
+
 linegraphsvg.selectAll("circle")
   	.data(linegraphData)
   	.join("circle")
@@ -717,12 +734,35 @@ linegraphsvg.selectAll("circle")
   	.attr("cx",function(d) { return x(new Date(d.date)) })
    	.attr("cy",function(d) { return y(d.value) })
    	.on("mouseover",function(e,d){
-   		d3.select("#dateinfo1").text("Date: "+ d.date);
-   		d3.select("#dateinfo2").text("Transaction count: " + d.value );
+		line_tooltip_left.transition()
+			.duration(100)
+			.style("opacity", 1);
+
+		line_tooltip_left
+			.html('Date: ' + d.date + '<br>' + 
+			'Transaction count: ' + d.value)
+			.style("left", (event.pageX ) + 10 + "px")
+			.style("top", (event.pageY - 50) + "px")
+			.style("color", "white");
+		
+
+		d3.select(this).transition()
+			.duration(500)
+			.attr('r',10);
+
+   		//d3.select("#dateinfo1").text("Date: "+ d.date);
+   		//d3.select("#dateinfo2").text("Transaction count: " + d.value );
    	})
    	.on("mouseout",function(e,d){
-   		d3.select("#dateinfo1").text("" );
-      	d3.select("#dateinfo2").text("" );
+   		//d3.select("#dateinfo1").text("" );
+      	//d3.select("#dateinfo2").text("" );
+		line_tooltip_left.transition()
+			.duration(100)
+			.style("opacity", 0);
+
+		d3.select(this).transition()
+			.duration(100)
+			.attr('r',5);
    	});
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -779,6 +819,17 @@ timegraphsvg.append("g")
 	.attr("transform", "translate("+2*margin+",0)")
   	.call(d3.axisLeft(timey).tickSize(0));
 
+timetitle = timegraphsvg.append('text')
+			.attr('transform','translate(' + lineW / 2 + ',20)')
+			.attr('text-anchor','middle')
+			.attr('fill','black')
+			.attr('font-size', '16px')
+			.attr('font-weight', 'bold')
+			.attr('x', 0)
+			.attr('y', 0)
+			.style("opacity",1)
+			.text('Total Transactions by Time of Day');
+
 timegraphsvg.append("path")
   	.datum(timegraphData)
   	.attr("fill", "none")
@@ -791,6 +842,12 @@ timegraphsvg.append("path")
 timegraphsvg.append("text").attr("x",lineW/2 - 3*margin).attr("y", margin).attr("id","timeinfo1");
 timegraphsvg.append("text").attr("x",lineW/2 - 3*margin).attr("y", margin+20).attr("id","timeinfo2");
 
+var line_tooltip_right = d3.select("#graphovertime").append("div")
+		.attr("class", "tooltip")
+		.attr('id', 'line_tooltip_right')
+		.style("opacity", 0)
+		.style("top", -2 * margin + "px");
+
 timegraphsvg.selectAll("circle")
   	.data(timegraphData)
   	.join("circle")
@@ -799,12 +856,37 @@ timegraphsvg.selectAll("circle")
   	.attr("cx",function(d) { return timex(+d.time) })
    	.attr("cy",function(d) { return timey(d.value) })
    	.on("mouseover",function(e,d){
-   		d3.select("#timeinfo1").text("Hour: "+ d.time+":00 EST");
-   		d3.select("#timeinfo2").text("Transaction count: " + d.value );
+		line_tooltip_right.transition()
+			.duration(100)
+			.style("opacity", 1);
+
+		line_tooltip_right
+			.html('Hour: ' + d.time + ':00 EST <br>' + 
+			'Transaction count: ' + d.value)
+			.style("left", (event.pageX ) + 10 + "px")
+			.style("top", (event.pageY - 50) + "px")
+			.style("color", "white");
+		
+
+		d3.select(this).transition()
+			.duration(500)
+			.attr('r',10);
+
+
+   		//d3.select("#timeinfo1").text("Hour: "+ d.time+":00 EST");
+   		//d3.select("#timeinfo2").text("Transaction count: " + d.value );
    	})
    	.on("mouseout",function(e,d){
-   		d3.select("#timeinfo1").text("" );
-      	d3.select("#timeinfo2").text("" );
+   		//d3.select("#timeinfo1").text("" );
+      	//d3.select("#timeinfo2").text("" );
+		line_tooltip_right.transition()
+			.duration(100)
+			.style("opacity", 0);
+
+		d3.select(this).transition()
+			.duration(100)
+			.attr('r',5);
+
    	});
 } // function end
 
@@ -891,6 +973,18 @@ function userbargraph(nodesdata){
 			.attr('y', 100)
 			.text('Number of Transactions');*/
 	
+	usertitle = usersvg.append('text')
+		.attr('transform','translate(' + userW / 2 + ',20)')
+		.attr('text-anchor','middle')
+		.attr('fill','black')
+		.attr('font-size', '16px')
+		.attr('font-weight', 'bold')
+		.attr('x', 0)
+		.attr('y', 0)
+		.style("opacity",1)
+		.text('Most Active Users (Total Transactions)');
+
+
 	// Bars get a tooltip too!
 	var bar_tooltip = d3.select("#usergraph").append("div")
 		.attr("class", "tooltip")
@@ -1039,6 +1133,17 @@ function emojibargraph(linksdata){
     					.attr('transform',d=>'translate('+(d.x - (d.r+15)/2)+','+(3*margin+d.y)+')')
     					.style('font-size',d=>d.r+15)
     					.text(d=>d.data.emoji);
+	
+	emojititle = emojisvg.append('text')
+		.attr('transform','translate(' + emojiW / 2 + ',20)')
+		.attr('text-anchor','middle')
+		.attr('fill','black')
+		.attr('font-size', '16px')
+		.attr('font-weight', 'bold')
+		.attr('x', 0)
+		.attr('y', 0)
+		.style("opacity",1)
+		.text('Most Frequently Used Emojis');
 
 
 	// The rest is just making a bar graph
