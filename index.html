@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <script src="https://d3js.org/d3.v6.js"></script>
-
+<script src="graphemesplitter.js"></script>
 <style type="text/css">
 svg {
 	display: block;
@@ -14,6 +14,13 @@ body {
 	font-size: 15px;
 	font-family: Helvetica, sans-serif;
 }
+
+@font-face {
+  font-family: 'emoji';
+  src: url('NotoColorEmoji.ttf')
+  format('truetype');
+}
+
 
 h1{
 	color: #3d95ce;
@@ -200,7 +207,8 @@ instructions0
 
 Promise.all([
 //d3.csv("placeholder.csv")
-d3.json("https://raw.githubusercontent.com/6859-sp21/final-project-byo_venmo_transaction_network/main/venmo_gt4_first200k_full.json")
+d3.json("https://raw.githubusercontent.com/6859-sp21/final-project-byo_venmo_transaction_network/main/venmo_gt4_first200k_full.json"),
+d3.json("justemojis.json")
 ])
 .then(function(dt){
 
@@ -210,6 +218,8 @@ instructions0.transition()
 	.style("opacity",0);
 
 venmoData = dt[0];
+
+allemojis = dt[1];
 //console.log(venmoData.links);
 //console.log(venmoData.nodes);
 
@@ -1059,7 +1069,7 @@ function emojibargraph(linksdata){
 	var emojiW = window.innerWidth*0.45;
 	var emojiH = window.innerHeight*0.6;
 	var margin = 20;
-	var n_bars = 20;
+	var n_bars = 50;
 	var emojisvg = d3.select("#emojigraph")
 				.append("svg")
 				.attr("width", 2*margin + emojiW)
@@ -1075,25 +1085,48 @@ function emojibargraph(linksdata){
 	// a function that returns true for (most) emojis
 	const regexExp = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/gi;
 
-	// loop through all links
-	for (var i = 0; i < linksdata.length; i++) {
-		notes = linksdata[i].note; // pull out the notes
+	//loop through all links
+	// for (var i = 0; i < linksdata.length; i++) { //linksdata.length
+	// 	notes = linksdata[i].note; // pull out the notes
+	// 	for (var j = 0; j < notes.length; j++) { // some of the links have multiple notes, so loop through each one
+	// 		if(regexExp.test(notes[j])) { // test the note for emojis
+	// 			note_array = Array.from(notes[j]); // If so, split it into character / emoji chunks //note_array = regexExp.exec(notes[j])//
+	// 			for (let characters of note_array) { // Loop through these chunks
+	// 				console.log(regexExp.test(characters));
+	// 				if (regexExp.test(characters)) { // If it's an emoji add it to the dictionary
+	// 					if (characters in emojicounts) {
+	// 						emojicounts[characters]++
+	// 					} else {
+	// 						emojicounts[characters] = 1
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// };
+	// woof
+
+	var splitter = new GraphemeSplitter();
+
+	//console.log(linksdata);
+	for (var i = 0; i < linksdata.length; i++) { //linksdata.length
+		var notes = linksdata[i].note; // pull out the notes
 		for (var j = 0; j < notes.length; j++) { // some of the links have multiple notes, so loop through each one
-			if(regexExp.test(notes[j])) { // test the note for emojis
-				note_array = Array.from(notes[j]); // If so, split it into character / emoji chunks
-				for (let characters of note_array) { // Loop through these chunks
-					if (regexExp.test(characters)) { // If it's an emoji add it to the dictionary
-						if (characters in emojicounts) {
-							emojicounts[characters]++
+			var note_array = splitter.splitGraphemes(notes[j]);
+			//console.log(note_array);
+			for (var k = 0; k < note_array.length; k++) {
+				if (allemojis.includes(note_array[k])){
+					//console.log(note_array[k])
+					if (note_array[k] in emojicounts) {
+							emojicounts[note_array[k]]++
 						} else {
-							emojicounts[characters] = 1
+							emojicounts[note_array[k]] = 1
 						}
 					}
 				}
 			}
-		}
-	};
-	// woof
+		};
+
 
 	// Now we have to turn that dict into a list of smaller dicts because thats the only way I know how to sort
 	emojicounts_list = [];
@@ -1115,11 +1148,11 @@ function emojibargraph(linksdata){
 
 	var bubble = data => d3.pack()
     .size([emojiW, emojiH])
-    .padding(2)(d3.hierarchy({ children: data }).sum(d => d.count));
+    .padding(3)(d3.hierarchy({ children: data }).sum(d => d.count));
 
     var root = bubble(sorted_emojis);
 
-    console.log(root.children);
+    //console.log(root.children);
 
     var bub = emojisvg.selectAll('circle')
     					.data(root.children)
@@ -1132,6 +1165,7 @@ function emojibargraph(linksdata){
     					.join('text')
     					.attr('transform',d=>'translate('+(d.x - (d.r+15)/2)+','+(3*margin+d.y)+')')
     					.style('font-size',d=>d.r+15)
+    					.style('font-family','emoji')
     					.text(d=>d.data.emoji);
 	
 	emojititle = emojisvg.append('text')
@@ -1249,7 +1283,8 @@ var emojisvg = d3.select("#emojigraph")
             preFetch: true,
             insertInto: document.getElementById('msg'),
             emit(obj, triggerElement) {
-                console.log(obj, triggerElement);
+            	var b=7;
+                //console.log(obj, triggerElement);
             }
         });
     </script>
