@@ -2,6 +2,8 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title> BYO Venmo Network </title>
+<link rel="shortcut icon" type="image/png" href="favicon.png"/>
 <script src="https://d3js.org/d3.v6.js"></script>
 <script src="graphemesplitter.js"></script>
 <style type="text/css">
@@ -358,6 +360,7 @@ document.getElementById("begin").addEventListener('click',
 	});
 
 
+//When View Instructions button is clicked, show instructions again
 document.getElementById("instragain").addEventListener('click',
 	function(){
 		instructions
@@ -367,14 +370,10 @@ document.getElementById("instragain").addEventListener('click',
 	}
 );
 
+//adding some drag behavior to the nodes (drag to a fixed position)
 const drag = d3
 	.drag()
-	// .on("start", dragstart)
 	.on("drag", dragged);
-
-// function dragstart() {
-//     d3.select(this).classed("fixed", true);
-// }
 
 function dragged(event, d) {
     d.fx = clamp(event.x, 0, width);
@@ -385,6 +384,7 @@ function dragged(event, d) {
 function clamp(x, lo, hi) {
   return x < lo ? lo : x > hi ? hi : x;
 }
+
 
 // A function that does the graph stuff
 function generateGraph(nodesdata,linksdata, start = false){
@@ -420,6 +420,7 @@ function generateGraph(nodesdata,linksdata, start = false){
 		.style("fill", function(d){return color_scale(d.neighbors.length)})
 		.attr("id",d =>d.name);
 
+	//add dragging function
 	node.call(drag);
 	
 	// Had to paste the same mouse listeners in here. Probably a smarter way...
@@ -513,9 +514,11 @@ function generateGraph(nodesdata,linksdata, start = false){
 			.style("opacity", 0);
 	});
 
-	//restart simulation
+	//show different message if there are no nodes
 	if (nodesdata.length==0){
 		document.getElementById("nonodesfound").style.display = "block";
+
+		//start simulation
 		if (!start) {
 		simulation.nodes(nodesdata);
 		//simulation
@@ -525,12 +528,17 @@ function generateGraph(nodesdata,linksdata, start = false){
 		simulation.alpha(0.2).restart();
 
 		}
+
+		//make graphs
 		linegraphs(linksdata);
 		userbargraph(nodesdata);
 		emojibargraph(linksdata);
 	
 	} else {
+		//hide no nodes message
 		document.getElementById("nonodesfound").style.display = "none";
+
+		//start simulation
 		if (!start) {
 		simulation.nodes(nodesdata);
 		//simulation
@@ -538,6 +546,8 @@ function generateGraph(nodesdata,linksdata, start = false){
 		simulation.force("center", d3.forceCenter(svg_width_px / 2, svg_height_px / 2).strength(center_strength))  
 		simulation.alpha(0.2).restart();
 		}
+
+		//make graphs
 		linegraphs(linksdata);
 		userbargraph(nodesdata);
 		emojibargraph(linksdata);
@@ -559,8 +569,6 @@ document.getElementById("showall").addEventListener('click',
 		click_namevalue=[];
 		generateGraph([],[]);
 	});
-
-
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1067,6 +1075,8 @@ function userbargraph(nodesdata){
 			.style("opacity", 0);
 
 	})
+
+// on click, outline the bar and the corresponding graph node in green. If already clicked, change back to regular outlines.
 	.on("click", function(event,d){
 
 		myel = d3.select(this);
@@ -1089,7 +1099,7 @@ function userbargraph(nodesdata){
 		
 	});
 
-}
+} // end of if statement
 
 };
 
@@ -1120,7 +1130,7 @@ function emojibargraph(linksdata){
 	// a function that returns true for (most) emojis
 	const regexExp = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/gi;
 
-	//loop through all links
+	// hiding all regex code for now
 	// for (var i = 0; i < linksdata.length; i++) { //linksdata.length
 	// 	notes = linksdata[i].note; // pull out the notes
 	// 	for (var j = 0; j < notes.length; j++) { // some of the links have multiple notes, so loop through each one
@@ -1141,18 +1151,16 @@ function emojibargraph(linksdata){
 	// };
 	// woof
 
+	//someone made this splitter that can handle emojis
 	var splitter = new GraphemeSplitter();
 
-	//console.log(linksdata);
 	for (var i = 0; i < linksdata.length; i++) { //linksdata.length
 		var notes = linksdata[i].note; // pull out the notes
 		for (var j = 0; j < notes.length; j++) { // some of the links have multiple notes, so loop through each one
-			var note_array = splitter.splitGraphemes(notes[j]);
-			//console.log(note_array);
+			var note_array = splitter.splitGraphemes(notes[j]); // split into characters/emojis
 			for (var k = 0; k < note_array.length; k++) {
-				if (allemojis.includes(note_array[k])){
-					//console.log(note_array[k])
-					if (note_array[k] in emojicounts) {
+				if (allemojis.includes(note_array[k])){ // allemojis is the list of all emojis we read in earlier, check if char is in allemojis
+					if (note_array[k] in emojicounts) { // add to emoji dictionary
 							emojicounts[note_array[k]]++
 						} else {
 							emojicounts[note_array[k]] = 1
@@ -1179,22 +1187,24 @@ function emojibargraph(linksdata){
 
 	// sort, as promised
 	sorted_emojis = emojicounts_list.slice().sort((a, b) => d3.descending(a.count, b.count)).slice(0,n_bars);
-	//console.log((sorted_emojis[17].emoji === ''));
 
+
+
+	//bubble chart!
 	var bubble = data => d3.pack()
     .size([emojiW, emojiH])
     .padding(3)(d3.hierarchy({ children: data }).sum(d => d.count));
 
     var root = bubble(sorted_emojis);
 
-    //console.log(root.children);
-
+    //circles (no colors/outlines yet)
     var bub = emojisvg.selectAll('circle')
     					.data(root.children)
     					.join('circle')
     					.attr('transform',d=>'translate('+(d.x- (d.r+15)/2)+','+(3*margin+d.y)+')')
     					.attr('r',d=>d.data.r);
 
+    //the actual emoji text
     var labels = emojisvg.selectAll('text')
     					.data(root.children)
     					.join('text')
@@ -1203,6 +1213,7 @@ function emojibargraph(linksdata){
     					.style('font-family','emoji')
     					.text(d=>d.data.emoji);
 	
+
 	emojititle = emojisvg.append('text')
 		.attr('transform','translate(' + emojiW / 2 + ',20)')
 		.attr('text-anchor','middle')
@@ -1264,7 +1275,7 @@ function emojibargraph(linksdata){
 		.style("opacity", 0)
 		.style("top", -2 * margin + "px");
 	
-	// bars turn to black on hover and show the tooltip
+	// hover over emojis to show the tooltip
 	labels
 	.on("mouseover", function(event, d) {
 		// console.log(d.r);
@@ -1307,7 +1318,7 @@ var emojisvg = d3.select("#emojigraph")
 
 </script>
 
-<!--- emoji menu --->
+<!--- emoji picker menu --->
 <script src="fgEmojiPicker.js"></script>
     <script>
         const emojiPicker = new FgEmojiPicker({
