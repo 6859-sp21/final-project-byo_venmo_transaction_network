@@ -149,7 +149,7 @@ div.instructions {
 <div id="datefilter" class="filtering">
 	<label for="startdate">Start date:</label><input type="date" id="startdate" value="2018-07-01" min="2018-07-01" max="2019-02-28">
 	<label for="enddate">End date:</label><input type="date" id="enddate" value="2019-02-28" min="2018-07-01" max="2019-02-28">
-	<input id="datesubmit" type="button" value="Filter">
+	<input id="datesubmit" type="button" value="Search">
 </div>
 <div id="chargefilter" class="filtering" style="display:none">
 <label for="chargeorpay">Charges, payments, or both:</label>
@@ -162,6 +162,7 @@ div.instructions {
 <div id="showalldiv" class="filtering">
 	<input id="showall" type="button" value="Clear all users">
 </div>
+<div id="instr" class="filtering"><input id="instragain" type="button" value="View instructions"></div>
 
 
 <div id="namesearches">
@@ -312,11 +313,15 @@ instructions
 		"Hover over the nodes (users) and edges (transactions) to see details. Click on colored nodes to add their neighbors to the network." +
 		"You can also add to your network by using either of the search bars to add individual users or by message content." +
 		"And don't forget to check out the plots at the bottom for more details on the network you've built." +
+		"If you're in the middle of building your network, click the Begin button to close the instructions and pick up where you left off." +
 		"While you're exploring, take some time to consider the data you've sent publicly over Venmo." +
 		"You may or may not be in this small subset of the data, but would you want a stranger viewing your transaction history as part of their final project?"
+
 		)
 		.style('font-weight','normal')
 		.style('font-size','14px');
+
+
 
 //var namevalue = [document.getElementById("search").value];
 namevalue = ["blingq","Jake-Castillo","madeline-cooper-1"];
@@ -351,6 +356,16 @@ document.getElementById("begin").addEventListener('click',
 			.duration(300)
 			.style("opacity",0);
 	});
+
+
+document.getElementById("instragain").addEventListener('click',
+	function(){
+		instructions
+			.transition()
+			.duration(300)
+			.style("opacity",1);
+	}
+);
 
 const drag = d3
 	.drag()
