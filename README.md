@@ -18,3 +18,7 @@ greater than 3: 1M+ rows
 greater than 2: 1.8M+ rows
 
 greater than 1: 4M+ rows
+
+https://github.com/orling/grapheme-splitter
+
+https://github.com/woody180/vanilla-javascript-emoji-picker
