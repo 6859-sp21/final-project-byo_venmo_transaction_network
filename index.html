@@ -123,14 +123,10 @@ div.instructions {
 <select id="d3-dropdown">
 	<option value="None">Select User to Start Network</option>
 	<option value="None">None</option>
-	<option value="ClaytonSilva">ClaytonSilva</option>
-	<option value="Crew-Chiefs">Crew-Chiefs</option>
-	<option value="Matthew-Woodson-4">Matthew-Woodson-4</option>
-	<option value="blingq">blingq</option>
-	<option value="NehaParagi">NehaParagi</option>
-	<option value="BambinoTechnologiesInc">BambinoTechnologiesInc</option>
-	<option value="auntieKUMA">auntieKUMA</option>
-	<option value="WAFB-CreativeServices">WAFB-CreativeServices</option>
+	<option value="Crew-Chiefs">Crew-Chiefs [small] </option>
+	<option value="BambinoTechnologiesInc">BambinoTechnologiesInc [medium] </option>
+	<option value="nomad-rides-2">nomad-rides-2 [large] </option>
+	<option value="blingq">blingq [extra large]</option>
 </select>
 
 <div id="begin" class="filtering">
@@ -210,8 +206,8 @@ instructions0
 
 Promise.all([
 //d3.csv("placeholder.csv")
-d3.json("https://raw.githubusercontent.com/6859-sp21/final-project-byo_venmo_transaction_network/main/venmo_gt4_first200k_full.json"),
-d3.json("justemojis.json")
+d3.json("https://raw.githubusercontent.com/6859-sp21/final-project-byo_venmo_transaction_network/main/venmo_eightormore_full.json"),
+d3.json("https://raw.githubusercontent.com/6859-sp21/final-project-byo_venmo_transaction_network/main/justemojis.json")
 ])
 .then(function(dt){
 
@@ -229,7 +225,7 @@ allemojis = dt[1];
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Some variables
 var radius = 4,
-	link_strength = 0.25,
+	link_strength = 0.1,
 	center_strength = 1,
 	charge = -0.1,
 	image_left = 100
@@ -310,9 +306,9 @@ instructions
 		.style('font-weight','700');
 instructions
 		.append('text').text("Welcome to our Interactive Data Visualization where you can explore the network of publicly available " +
-		"Venmo transactions between July 2018 & February 2019. All data was scraped from the public Venmo API by Dan Salmon (is that right?)." +
-		"To begin, select a starting user from the dropdown menu and press the begin button to display that user and their immediate neighbors. " +
-		"Hover over the nodes (users) and edges (transactions) to see details. Click on colored nodes to add their neighbors to the network." +
+		"Venmo transactions between July 2018 & February 2019. All data was scraped from the public Venmo API by Dan Salmon." +
+		"To begin, select a starting user from the dropdown menu (or we'll select one for you) and press the begin button to display that user and their immediate neighbors. " +
+		"Hover over the nodes (users) and edges (transactions) to see details. Click on colored nodes to add their neighbors to the network or drag them around the page for easier viewing." +
 		"You can also add to your network by using either of the search bars to add individual users or by message content." +
 		"And don't forget to check out the plots at the bottom for more details on the network you've built." +
 		"If you're in the middle of building your network, click the Begin button to close the instructions and pick up where you left off." +
@@ -326,7 +322,7 @@ instructions
 
 
 //var namevalue = [document.getElementById("search").value];
-namevalue = ["blingq","Jake-Castillo","madeline-cooper-1"];
+namevalue = ["blingq"];
 //namevalue = [];
 click_namevalue = [];
 var simulation = 0;
@@ -400,7 +396,7 @@ function generateGraph(nodesdata,linksdata, start = false){
 
 	blur_tooltip.transition()
 		.duration(100)
-		.style("opacity", 1);
+		.style("opacity", 0);
 
 	//update link and node with new data
 	link = g
@@ -477,6 +473,10 @@ function generateGraph(nodesdata,linksdata, start = false){
 	})
 	.on("click", function(event, d) {
 		filter(d, "click");
+
+		d3.select(this).transition()
+		.duration(100)
+		.style('opacity',0.5);
 	});
 
 	// Same for edges
@@ -628,9 +628,16 @@ function filter(event, type = "filter", start = false){
 
 	var allnames = []
 
-	for (var i = 0; i < filterlinks.length; i++) {
+	//for (var i = 0; i < filterlinks.length; i++) {
+	// now capped at 1000 edges
+	for (var i = 0; i < Math.min(filterlinks.length,1000); i++) {
 		allnames.push(filterlinks[i].source.name);
 		allnames.push(filterlinks[i].target.name);
+	}
+	
+	//capped at 1000 edges
+	if (filterlinks.length > 1000) {
+		filterlinks = filterlinks.slice(0,1000);
 	}
 
 	filternodes = filternodes.filter(function(d){
@@ -1277,12 +1284,7 @@ function emojibargraph(linksdata){
 	
 	// hover over emojis to show the tooltip
 	labels
-	.on("mouseover", function(event, d) {
-		// console.log(d.r);
-		// d3.select(this).transition()
-		// 	.duration(500)
-		// 	.style("r", 5);
-		
+	.on("mouseover", function(event, d) {	
 		bar_tooltip.transition()
 			.duration(100)
 			.style("opacity", 1);
