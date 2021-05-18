@@ -163,8 +163,7 @@ div.instructions {
 <div id="instr" class="filtering"><input id="instragain" type="button" value="View instructions"></div>
 
 
-<div id="namesearches">
-</div>
+<div id="namesearches">Usernames searched: </div>
 
 <div id="nonodesfound" style="display: none;">No users found!</div>
 
@@ -196,13 +195,13 @@ var instructions0 = d3.select("body").append("div")
 
 instructions0
 		.html("Instructions <br>")
-		.style('font-size','22px')
+		.style('font-size','36px')
 		.style('font-weight','700');
 instructions0
 		.append('text').text("Please Wait..."
 		)
 		.style('font-weight','normal')
-		.style('font-size','14px');
+		.style('font-size','24px');
 
 Promise.all([
 //d3.csv("placeholder.csv")
@@ -225,7 +224,7 @@ allemojis = dt[1];
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Some variables
 var radius = 4,
-	link_strength = 0.1,
+	link_strength = 0.2,
 	center_strength = 1,
 	charge = -0.1,
 	image_left = 100
@@ -302,22 +301,37 @@ var instructions = d3.select("body").append("div")
 
 instructions
 		.html("Instructions <br>")
-		.style('font-size','22px')
+		.style('font-size','36px')
 		.style('font-weight','700');
 instructions
-		.append('text').text("Welcome to our Interactive Data Visualization where you can explore the network of publicly available " +
+		.append('div').html("Welcome to our Interactive Data Visualization where you can explore the network of publicly available " +
 		"Venmo transactions between July 2018 & February 2019. All data was scraped from the public Venmo API by Dan Salmon." +
-		"To begin, select a starting user from the dropdown menu (or we'll select one for you) and press the begin button to display that user and their immediate neighbors. " +
-		"Hover over the nodes (users) and edges (transactions) to see details. Click on colored nodes to add their neighbors to the network or drag them around the page for easier viewing." +
-		"You can also add to your network by using either of the search bars to add individual users or by message content." +
-		"And don't forget to check out the plots at the bottom for more details on the network you've built." +
-		"If you're in the middle of building your network, click the Begin button to close the instructions and pick up where you left off." +
-		"While you're exploring, take some time to consider the data you've sent publicly over Venmo." +
-		"You may or may not be in this small subset of the data, but would you want a stranger viewing your transaction history as part of their final project?"
+		"To begin, select a starting user from the dropdown menu (or we'll select one for you) and press the begin button to display that user and their immediate neighbors.").style('font-weight','normal')
+		.style('font-size','22px');
+instructions.append('div').html("<br>");
 
-		)
+instructions
+		.append('div').html("	• Hover over the nodes (users) and edges (transactions) to see details. Click on colored nodes to add their neighbors to the network or drag them around the page for easier viewing.").style('font-weight','normal')
+		.style('font-size','22px');
+
+instructions.append('div').html("	• You can also add to your network by using the search bars; add individual users by username or show all transactions that contain a certain word, phrase, or emoji in their message.").style('font-weight','normal')
+		.style('font-size','22px');
+
+instructions.append('div').html("	• And don't forget to check out the plots at the bottom for more details on the network you've built. These update dynamically with any filters you add and each have their own interactions as well.").style('font-weight','normal')
+		.style('font-size','22px');
+
+instructions
+		.append('div').html("	• Zoom in and out on the network for easier clicking, hovering, and viewing.").style('font-weight','normal')
+		.style('font-size','22px');
+
+instructions.append('div').html("	• If you're in the middle of building your network, click the Begin button to close the instructions and pick up where you left off.").style('font-weight','normal')
+		.style('font-size','22px');
+
+instructions.append('div').html("<br>");
+
+instructions.append('div').html("While you're exploring, take some time to consider the data you've sent publicly over Venmo. You may or may not be in this small subset of the data, but would you want a stranger viewing your transaction history as part of their final project?")
 		.style('font-weight','normal')
-		.style('font-size','14px');
+		.style('font-size','22px');
 
 
 
@@ -349,6 +363,7 @@ document.getElementById("begin").addEventListener('click',
 	function(event){
 		start_sim();
 		filter(event, type = "filter", start = true);
+		document.getElementById("namesearches").innerHTML = document.getElementById("namesearches").innerHTML +namevalue[namevalue.length-1]+"; ";
 		instructions
 			.transition()
 			.duration(300)
@@ -766,6 +781,16 @@ datetitle = linegraphsvg.append('text')
 	.style("opacity",1)
 	.text('Total Transactions by Date');
 
+datesubtitle = linegraphsvg.append('text')
+	.attr('transform','translate(' + (lineW / 2 + 200)+ ',20)')
+	.attr('text-anchor','middle')
+	.attr('fill','black')
+	.attr('font-size', '12px')
+	.attr('x', 0)
+	.attr('y', 0)
+	.style("opacity",1)
+	.text('(hover over points for more details)');
+
 linegraphsvg.append("path")
   	.datum(linegraphData)
   	.attr("fill", "none")
@@ -890,6 +915,16 @@ timetitle = timegraphsvg.append('text')
 			.style("opacity",1)
 			.text('Total Transactions by Time of Day');
 
+timesubtitle = timegraphsvg.append('text')
+	.attr('transform','translate(' + (lineW / 2 + 230)+ ',20)')
+	.attr('text-anchor','middle')
+	.attr('fill','black')
+	.attr('font-size', '12px')
+	.attr('x', 0)
+	.attr('y', 0)
+	.style("opacity",1)
+	.text('(hover over points for more details)');
+
 timegraphsvg.append("path")
   	.datum(timegraphData)
   	.attr("fill", "none")
@@ -908,6 +943,25 @@ var line_tooltip_right = d3.select("#graphovertime").append("div")
 		.style("opacity", 0)
 		.style("top", -2 * margin + "px");
 
+
+function utc_to_est(hr){
+	hr = +hr;
+	if((4 <= hr) & (hr <= 23)){
+		return hr-4
+	} else if ((0 <= hr) & (hr <= 3)){
+		return 24+hr-4
+}
+}
+
+function utc_to_pst(hr){
+	hr = +hr;
+	if((7 <= hr) & (hr <= 23)){
+		return hr-7
+	} else if ((0 <= hr) & (hr <= 6)){
+		return 24+hr-7
+}
+}
+
 timegraphsvg.selectAll("circle")
   	.data(timegraphData)
   	.join("circle")
@@ -921,7 +975,9 @@ timegraphsvg.selectAll("circle")
 			.style("opacity", 1);
 
 		line_tooltip_right
-			.html('Hour: ' + d.time + ':00 EST <br>' + 
+			.html('Hour: ' + d.time + ':00 UTC <br>' +
+			 				"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"+utc_to_est(d.time) + ':00 EST <br>' + 
+			 				"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" +utc_to_pst(d.time) + ':00 PST <br>' + 
 			'Transaction count: ' + d.value)
 			.style("left", (event.pageX ) + 10 + "px")
 			.style("top", (event.pageY - 50) + "px")
@@ -1043,6 +1099,16 @@ function userbargraph(nodesdata){
 		.attr('y', 0)
 		.style("opacity",1)
 		.text('Most Active Users (Total Transactions)');
+
+	usersubtitle = usersvg.append('text')
+		.attr('transform','translate(' + (userW/2)+ ',35)')
+		.attr('text-anchor','middle')
+		.attr('fill','black')
+		.attr('font-size', '12px')
+		.attr('x', 0)
+		.attr('y', 0)
+		.style("opacity",1)
+		.text("Click a bar to outline user node in green in the network");
 
 
 	// Bars get a tooltip too!
@@ -1232,7 +1298,15 @@ function emojibargraph(linksdata){
 		.style("opacity",1)
 		.text('Most Frequently Used Emojis');
 
-
+	emojisubtitle = emojisvg.append('text')
+		.attr('transform','translate(' + (emojiW/2 + 200)+ ',20)')
+		.attr('text-anchor','middle')
+		.attr('fill','black')
+		.attr('font-size', '12px')
+		.attr('x', 0)
+		.attr('y', 0)
+		.style("opacity",1)
+		.text("(hover for more details)");
 	// The rest is just making a bar graph
 	// Construct the y scale based on the largest number of transactions
 	// var max_count = sorted_emojis[0].count;
@@ -1338,13 +1412,39 @@ var emojisvg = d3.select("#emojigraph")
     </script>
 
 
-<h2 id="design-choices">Design Choices and Reflection</h2>
 <div>
 <p>
-Kiran Gite and Shane Weisberg, for MIT 6.859 Interactive Data Visualization, Spring 2021. <a href="https://github.com/6859-sp21/final-project-byo_venmo_transaction_network" target=" blank"> [Source code]</a>
+By Kiran Gite and Shane Weisberg, for MIT 6.859 Interactive Data Visualization, Spring 2021. <a href="https://github.com/6859-sp21/final-project-byo_venmo_transaction_network" target=" blank"> [Source code]</a>
 </p>
 </div>
 
+
+<h2 id="design-choices">Credits</h2>
+<p>Venmo Transaction Dataset. Dan Salmon, June 2019, 
+	<a href="https://github.com/sa7mon/venmo-data" target=" blank">
+		https://github.com/sa7mon/venmo-data
+	</a>. Accessed Spring 2021. Dataset.
+</p>
+
+<p>Public by Default. Hang Do Thi Duc, 2018, 
+	<a href="https://22-8miles.com/public-by-default/" target=" blank">
+		https://publicbydefault.fyi/
+	</a> and <a href="https://22-8miles.com/public-by-default/" target=" blank">
+		https://22-8miles.com/public-by-default/
+	</a>. Inspired us to show how much personal information is available through Venmo through data visualization.
+</p>
+
+<div>JavaScript packages that helped to build the site:</div>
+<p> <a href="https://github.com/orling/grapheme-splitter" target=" blank">grapheme-splitter by orling</a></p>
+<p> <a href="https://github.com/woody180/vanilla-javascript-emoji-picker" target=" blank">vanilla-javascript-emoji-picker by woody180 and RahulChand028</a>
+</p>
+
+<h2>Abstract</h2>
+<div>
+We present our final project for 6.859, Interactive Data Visualization, for Spring 2021: <i>Build-your-own Venmo Transaction Network</i>. We use data scraped from Venmo's public API to construct a network of historical transactions that users of our visualization may construct from the bottom up. We hope users will enjoy exploring this network and pause to think about data privacy and the state of their personal data on Venmo and similar platforms. The visualization can be found at <a href="https://6859-sp21.github.io/final-project-byo_venmo_transaction_network/" target=" blank">https://6859-sp21.github.io/final-project-byo_venmo_transaction_network/</a></div>
+</div>
+
+<h2><a href="">Paper</a></h2>
 
 </body>
 
