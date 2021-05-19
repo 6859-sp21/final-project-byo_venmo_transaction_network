@@ -396,7 +396,6 @@ function clamp(x, lo, hi) {
   return x < lo ? lo : x > hi ? hi : x;
 }
 
-
 // A function that does the graph stuff
 function generateGraph(nodesdata,linksdata, start = false){
 	//console.log(nodesdata); console.log(linksdata);
@@ -685,9 +684,6 @@ simulation = d3.forceSimulation(venmoData.nodes)              // Force algorithm
       )
       //.force("charge", d3.forceManyBody().strength(charge))         // Repulsion between nodes.
       .force("center", d3.forceCenter(svg_width_px / 2, svg_height_px / 2).strength(center_strength))     // Attracts nodes to the center of the svg area
-	  //.force("x", d3.forceX()) // Can mess around with these
-      //.force("y", d3.forceY())
-	  //.stop()
 	  .on("tick", ticked);
 
 
@@ -704,8 +700,6 @@ simulation = d3.forceSimulation(venmoData.nodes)              // Force algorithm
   }
 
 }
-
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //create line graph over days
 
@@ -835,8 +829,6 @@ linegraphsvg.selectAll("circle")
 			.duration(500)
 			.attr('r',10);
 
-   		//d3.select("#dateinfo1").text("Date: "+ d.date);
-   		//d3.select("#dateinfo2").text("Transaction count: " + d.value );
    	})
    	.on("mouseout",function(e,d){
    		//d3.select("#dateinfo1").text("" );
@@ -1079,15 +1071,6 @@ function userbargraph(nodesdata){
 		.attr('class','yaxis')
 		.attr('transform','translate(' + (margin / 2 + 8) + ',' + 0 + ')')
 		.call(d3.axisLeft(barscale).ticks(5).tickSize(0));
-		/*.append('text')
-			.attr('transform','translate(-130,40) rotate(-90)')
-			.attr('text-anchor', 'end')
-			.attr('fill', 'black')
-			.attr('font-size', '12px')
-			.attr('font-weight', 'bold')
-			.attr('x', 0)
-			.attr('y', 100)
-			.text('Number of Transactions');*/
 	
 	usertitle = usersvg.append('text')
 		.attr('transform','translate(' + userW / 2 + ',20)')
@@ -1203,27 +1186,6 @@ function emojibargraph(linksdata){
 	// a function that returns true for (most) emojis
 	const regexExp = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/gi;
 
-	// hiding all regex code for now
-	// for (var i = 0; i < linksdata.length; i++) { //linksdata.length
-	// 	notes = linksdata[i].note; // pull out the notes
-	// 	for (var j = 0; j < notes.length; j++) { // some of the links have multiple notes, so loop through each one
-	// 		if(regexExp.test(notes[j])) { // test the note for emojis
-	// 			note_array = Array.from(notes[j]); // If so, split it into character / emoji chunks //note_array = regexExp.exec(notes[j])//
-	// 			for (let characters of note_array) { // Loop through these chunks
-	// 				console.log(regexExp.test(characters));
-	// 				if (regexExp.test(characters)) { // If it's an emoji add it to the dictionary
-	// 					if (characters in emojicounts) {
-	// 						emojicounts[characters]++
-	// 					} else {
-	// 						emojicounts[characters] = 1
-	// 					}
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// };
-	// woof
-
 	//someone made this splitter that can handle emojis
 	var splitter = new GraphemeSplitter();
 
@@ -1307,47 +1269,6 @@ function emojibargraph(linksdata){
 		.attr('y', 0)
 		.style("opacity",1)
 		.text("(hover for more details)");
-	// The rest is just making a bar graph
-	// Construct the y scale based on the largest number of transactions
-	// var max_count = sorted_emojis[0].count;
-	// var barscale = d3.scaleLinear().domain([0.5,max_count]).range([emojiH,5]);
-	// var xscale = d3.scaleBand().domain(sorted_emojis.map(d => d.emoji)).range([0,emojiW]);
-
-	// // Draw some bars
-	// var bars =emojisvg.selectAll("g").data(sorted_emojis) // attatch to the data
-	// 		.enter().append("g")
-	// 		// Make some rectangles (https://www.youtube.com/watch?v=lW3I7yz5nVo)
-	// 		.attr("transform", function(d, i) {
-	// 			return "translate(" + (xscale(d.emoji)+margin+xscale.bandwidth()/2-bar_width/2) + "," + barscale(Number(d.count)) + ")";
-	// 		})
-	// 		.append("rect").attr("height", function(d) {
-	// 			return (emojiH - barscale(Number(d.count)));
-	// 		})
-	// 		.attr("width",bar_width)
-	// 		.attr("fill", "lightsteelblue")
-	// 		.attr('stroke','white');
-	
-	// // X axis
-	// emojisvg.append('g')
-	// 	.attr('class','xaxis')
-	// 	.attr('transform', 'translate(' + (margin) + ',' + emojiH + ')')
-	// 	.style('font-size','20px')
-	// 	.call(d3.axisBottom(xscale).tickSize(0));
-	
-	// // Y axis
-	// emojisvg.append('g')
-	// 	.attr('class','yaxis')
-	// 	.attr('transform','translate(' + (margin) + ',' + 0 + ')')
-	// 	.call(d3.axisLeft(barscale).ticks(5).tickSize(0));
-		/*.append('text')
-			.attr('transform','translate(-130,40) rotate(-90)')
-			.attr('text-anchor', 'end')
-			.attr('fill', 'black')
-			.attr('font-size', '12px')
-			.attr('font-weight', 'bold')
-			.attr('x', 0)
-			.attr('y', 100)
-			.text('Number of Transactions');*/
 
 	// Bars get a tooltip too!
 	var bar_tooltip = d3.select("#emojigraph").append("div")
@@ -1371,10 +1292,6 @@ function emojibargraph(linksdata){
 			.style("color", "white");		
 	})
 	.on("mouseout", function(event, d) {
-		// d3.select(this).transition()
-		// 	.duration(100)
-		// 	.style("fill", "lightsteelblue");
-
 		bar_tooltip.transition()
 			.duration(100)
 			.style("opacity", 0);
@@ -1383,13 +1300,7 @@ function emojibargraph(linksdata){
 };
 emojibargraph(venmoData.links);
 
-//create emoji graph
-/*var emojiW = "45vw";
-var emojiH = "45vh";
-var emojisvg = d3.select("#emojigraph")
-	        .append("svg")
-	        .attr("width", emojiW)
-	        .attr("height", emojiH);*/
+
 }); //end of then function
 
 </script>
@@ -1444,7 +1355,8 @@ By Kiran Gite and Shane Weisberg, for MIT 6.859 Interactive Data Visualization, 
 We present our final project for 6.859, Interactive Data Visualization, for Spring 2021: <i>Build-your-own Venmo Transaction Network</i>. We use data scraped from Venmo's public API to construct a network of historical transactions that users of our visualization may construct from the bottom up. We hope users will enjoy exploring this network and pause to think about data privacy and the state of their personal data on Venmo and similar platforms. The visualization can be found at <a href="https://6859-sp21.github.io/final-project-byo_venmo_transaction_network/" target=" blank">https://6859-sp21.github.io/final-project-byo_venmo_transaction_network/</a></div>
 </div>
 
-<h2><a href="">Paper</a></h2>
+<h2><a href="https://github.com/6859-sp21/final-project-byo_venmo_transaction_network/blob/main/final/Gite_Weisberg_final_paper.pdf">Paper</a></h2>
+<h2><a href="https://drive.google.com/file/d/1LmoKU15LYNzYP0GtwP8oNywFAHm5m3i7/view?usp=sharing">Promo video</a></h2>
 
 </body>
 

@@ -15,6 +15,7 @@ We present our final project for 6.859, Interactive Data Visualization, for Spri
 We use data scraped from Venmo's public API to construct a network of historical transactions that users of our visualization may construct from the bottom up. 
 We hope users will enjoy exploring this network and pause to think about data privacy and the state of their personal data on Venmo and similar platforms. 
 The visualization can be found at https://6859-sp21.github.io/final-project-byo_venmo_transaction_network/
+Our paper can be found at https://github.com/6859-sp21/final-project-byo_venmo_transaction_network/blob/main/final/Gite_Weisberg_final_paper.pdf
 
 Work Distribution
 The workload was evenly distributed between Kiran and Shane, who is [very uncomfortably] writing this blurb in the third person.
